@@ -1,0 +1,42 @@
+# ─── GLOBAL ───
+.env
+.env.*
+.DS_Store
+
+# ─── NODE.JS & REACT (Client & Server) ───
+node_modules/
+npm-debug.log
+dist/
+build/
+
+# ─── PYTHON (AI Service) ───
+__pycache__/
+venv/
+env/
+*.pyc
+
+
+
+# ─── SECURITY & SECRETS ───
+# Ensure no local secrets or certificates are ever tracked
+*.pem
+*.key
+certs/
+
+# ─── AI & DATA (Large Files) ───
+# Ignore local database files and heavy AI models
+*.db
+*.sqlite3
+models/
+*.bin
+*.onnx
+*.weights
+data/*.json
+data/*.csv
+!data/sample.json # (Example: keep sample data but ignore the rest)
+
+# ─── IDE & TOOLS ───
+.vscode/
+.idea/
+*.swp
+*.log
