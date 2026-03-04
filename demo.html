@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>ChatBase Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+    }
+
+    /* Fake website navbar */
+    nav {
+      background: #1e1b4b;
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    nav .logo {
+      color: white;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    nav .links {
+      display: flex;
+      gap: 24px;
+    }
+
+    nav .links a {
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    /* Hero section */
+    .hero {
+      padding: 80px 40px;
+      text-align: center;
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+      color: white;
+    }
+
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      font-size: 18px;
+      opacity: 0.8;
+      max-width: 500px;
+      margin: 0 auto 32px;
+    }
+
+    .hero button {
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Features */
+    .features {
+      padding: 60px 40px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .feature-card .icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .feature-card h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    /* FAQ section - great for testing RAG */
+    .faq {
+      background: white;
+      padding: 60px 40px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .faq h2 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1e1b4b;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 20px 0;
+    }
+
+    .faq-item h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+
+    .faq-item p {
+      font-size: 14px;
+      color: #64748b;
+      line-height: 1.65;
+    }
+
+    footer {
+      background: #1e1b4b;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: center;
+      padding: 24px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Fake company website -->
+  <nav>
+    <div class="logo">⚡ TechStore</div>
+    <div class="links">
+      <a href="#">Products</a>
+      <a href="#">Pricing</a>
+      <a href="#">About</a>
+      <a href="#">Contact</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <h1>The Future of Tech</h1>
+    <p>Premium gadgets and electronics delivered to your door in 24 hours.</p>
+    <button>Shop Now</button>
+  </div>
+
+  <div class="features">
+    <div class="feature-card">
+      <div class="icon">🚀</div>
+      <h3>Fast Delivery</h3>
+      <p>Get your order delivered within 24 hours anywhere in the city. Free delivery on orders above $50.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🔄</div>
+      <h3>Easy Returns</h3>
+      <p>Not satisfied? Return any product within 30 days for a full refund. No questions asked.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🛡️</div>
+      <h3>2 Year Warranty</h3>
+      <p>Every product comes with a 2 year manufacturer warranty and our own quality guarantee.</p>
+    </div>
+  </div>
+
+  <div class="faq">
+    <h2>Frequently Asked Questions</h2>
+    <div class="faq-item">
+      <h4>What is your return policy?</h4>
+      <p>We offer a 30-day hassle-free return policy. Simply contact support@techstore.com and we will arrange a free
+        pickup.</p>
+    </div>
+    <div class="faq-item">
+      <h4>How long does delivery take?</h4>
+      <p>Standard delivery takes 1-2 business days. Express delivery is available for same-day delivery within city
+        limits.</p>
+    </div>
+    <div class="faq-item">
+      <h4>Do you offer international shipping?</h4>
+      <p>Yes! We ship to over 50 countries. International orders typically arrive within 7-14 business days.</p>
+    </div>
+    <div class="faq-item">
+      <h4>How can I track my order?</h4>
+      <p>Once your order ships, you will receive a tracking number via email. You can track it on our website or the
+        courier's site.</p>
+    </div>
+    <div class="faq-item">
+      <h4>What payment methods do you accept?</h4>
+      <p>We accept Visa, Mastercard, PayPal, and bank transfers. All payments are secured with 256-bit SSL encryption.
+      </p>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2025 TechStore. All rights reserved.
+  </footer>
+
+  <!-- ChatBase Widget — replace YOUR_API_KEY with your actual key -->
+<script
+  src="http://localhost:5002/digichat/widget.js"
+  data-api-key="3b058a29-5376-429d-81c9-cd4bfc145b74"
+></script>
+
+</body>
+
+</html>

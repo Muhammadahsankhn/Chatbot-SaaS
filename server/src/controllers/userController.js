@@ -219,3 +219,98 @@ module.exports.removeDomain = async (req, res) => {
     return res.status(500).json({ success: false });
   }
 };
+
+
+
+// ── Update Profile ──
+module.exports.updateProfile = async (req, res) => {
+  try {
+    const { fullname } = req.body;
+    await userModel.findByIdAndUpdate(req.user.id, { fullname });
+    return res.json({ success: true, message: "Profile updated." });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── Change Password ──
+module.exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user  = await userModel.findById(req.user.id);
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) return res.status(400).json({ success: false, message: "Current password incorrect." });
+    const hash = await bcrypt.hash(newPassword, 10);
+    await userModel.findByIdAndUpdate(req.user.id, { password: hash });
+    return res.json({ success: true, message: "Password changed." });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── Get All Conversations (ChatLogs) ──
+module.exports.getAllConversations = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search = "" } = req.query;
+    const userId = new mongoose.Types.ObjectId(req.user.id);
+    const query  = { userId };
+    if (search) query.visitorId = { $regex: search, $options: "i" };
+    const total = await conversationModel.countDocuments(query);
+    const conversations = await conversationModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .select("sessionId visitorId page messageCount status createdAt");
+    return res.json({ success: true, conversations, total, page: parseInt(page) });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── Analytics ──
+module.exports.getAnalytics = async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user.id);
+    const totalConversations = await conversationModel.countDocuments({ userId });
+    const agg = await conversationModel.aggregate([
+      { $match: { userId } },
+      { $group: { _id: null, totalMessages: { $sum: "$messageCount" } } }
+    ]);
+    const totalMessages = agg[0]?.totalMessages || 0;
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const activeToday = await conversationModel.countDocuments({ userId, createdAt: { $gte: todayStart } });
+    return res.json({ success: true, analytics: { totalConversations, totalMessages, activeToday } });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+
+
+// ── Weekly Activity ──
+module.exports.getWeeklyActivity = async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user.id);
+    const now    = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    monday.setHours(0, 0, 0, 0);
+
+    const results = await conversationModel.aggregate([
+      { $match: { userId, createdAt: { $gte: monday } } },
+      { $group: { _id: { $dayOfWeek: "$createdAt" }, count: { $sum: 1 } } }
+    ]);
+
+    const data = [0, 0, 0, 0, 0, 0, 0]; // Mon–Sun
+    results.forEach(r => {
+      const idx = r._id === 1 ? 6 : r._id - 2;
+      if (idx >= 0 && idx < 7) data[idx] = r.count;
+    });
+
+    return res.json({ success: true, data });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

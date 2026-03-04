@@ -20,7 +20,7 @@
     currentScript.getAttribute("data-server") || "http://localhost:3000";
 
   if (!API_KEY) {
-    console.error("[ChatBase] No data-api-key found on script tag.");
+    console.error("[Digichat] No data-api-key found on script tag.");
     return;
   }
 
@@ -591,7 +591,7 @@
   // INIT
   async function init() {
     // Fetch owner's widget config (bot name, color etc.)
-    await fetchConfig();
+    // await fetchConfig();
 
     // Build the widget
     injectStyles();
@@ -599,9 +599,10 @@
     attachEvents();
 
     // Show unread badge after 5 seconds to grab attention
-    setTimeout(() => {
-      if (!isOpen) showUnreadBadge();
-    }, 5000);
+    // setTimeout(() => {
+    //   if (!isOpen) showUnreadBadge();
+    // }, 5000);
+    console.log("Widget forced to show!");  
   }
 
   // Wait for DOM to be ready

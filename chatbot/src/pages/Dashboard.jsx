@@ -1,29 +1,31 @@
 import { MessageSquare, Users, Activity, TrendingUp, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getDashboardStats, getRecentConversations } from "../api/userService";
+import { getDashboardStats, getRecentConversations, getWeeklyActivity } from "../api/userService";
 import { useEffect, useState } from "react";
 import ThemeToggle from "../components/ThemeToggle";
 import { useAuth } from "../context/AuthContext";
 
-const weekBars = [40, 65, 45, 80, 55, 90, 70];
 const days = ["M", "T", "W", "T", "F", "S", "S"];
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [liveStats, setLiveStats] = useState(null);
-  const [liveChats, setLiveChats] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [liveStats, setLiveStats]   = useState(null);
+  const [liveChats, setLiveChats]   = useState([]);
+  const [weekData,  setWeekData]    = useState([0,0,0,0,0,0,0]);
+  const [isLoading, setIsLoading]   = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [statsRes, chatsRes] = await Promise.all([
+        const [statsRes, chatsRes, weekRes] = await Promise.all([
           getDashboardStats(),
           getRecentConversations(4),
+          getWeeklyActivity(),
         ]);
         if (statsRes.success) setLiveStats(statsRes.stats);
         if (chatsRes.success) setLiveChats(chatsRes.conversations || []);
+        if (weekRes.success)  setWeekData(weekRes.data || [0,0,0,0,0,0,0]);
       } catch (err) {
         console.error("Dashboard load error:", err);
       } finally {
@@ -35,38 +37,47 @@ export default function Dashboard() {
 
   const firstName = user?.fullname?.split(" ")[0] || "there";
 
+  // Convert raw counts to percentages for bar height
+  const maxVal    = Math.max(...weekData, 1);
+  const weekBars  = weekData.map(v => Math.round((v / maxVal) * 100) || 4);
+
+  const usagePct  = Math.min(
+    ((liveStats?.messageCount ?? 0) / (liveStats?.usageLimit ?? 100)) * 100,
+    100
+  );
+
   const displayStats = [
     {
-      label: "Total Conversations",
-      value: liveStats?.totalConversations ?? 0,
-      change: "Lifetime",
-      icon: <MessageSquare size={17} />,
-      iconBg: "bg-indigo-100 dark:bg-indigo-500/15",
-      iconColor: "text-indigo-600 dark:text-indigo-400",
+      label:      "Total Conversations",
+      value:      liveStats?.totalConversations ?? 0,
+      change:     "Lifetime",
+      icon:       <MessageSquare size={17} />,
+      iconBg:     "bg-indigo-100 dark:bg-indigo-500/15",
+      iconColor:  "text-indigo-600 dark:text-indigo-400",
     },
     {
-      label: "Total Messages",
-      value: liveStats?.totalMessages ?? 0,
-      change: "Lifetime",
-      icon: <Users size={17} />,
-      iconBg: "bg-emerald-100 dark:bg-emerald-500/15",
-      iconColor: "text-emerald-600 dark:text-emerald-400",
+      label:      "Total Messages",
+      value:      liveStats?.totalMessages ?? 0,
+      change:     "Lifetime",
+      icon:       <Users size={17} />,
+      iconBg:     "bg-emerald-100 dark:bg-emerald-500/15",
+      iconColor:  "text-emerald-600 dark:text-emerald-400",
     },
     {
-      label: "Active Today",
-      value: liveStats?.activeToday ?? 0,
-      change: "Today",
-      icon: <Activity size={17} />,
-      iconBg: "bg-amber-100 dark:bg-amber-500/15",
-      iconColor: "text-amber-600 dark:text-amber-400",
+      label:      "Active Today",
+      value:      liveStats?.activeToday ?? 0,
+      change:     "Today",
+      icon:       <Activity size={17} />,
+      iconBg:     "bg-amber-100 dark:bg-amber-500/15",
+      iconColor:  "text-amber-600 dark:text-amber-400",
     },
     {
-      label: "Usage",
-      value: `${liveStats?.messageCount ?? 0} / ${liveStats?.usageLimit ?? 100}`,
-      change: `Plan: ${liveStats?.plan ?? "starter"}`,
-      icon: <TrendingUp size={17} />,
-      iconBg: "bg-pink-100 dark:bg-pink-500/15",
-      iconColor: "text-pink-600 dark:text-pink-400",
+      label:      "Usage",
+      value:      `${liveStats?.messageCount ?? 0} / ${liveStats?.usageLimit ?? 100}`,
+      change:     `Plan: ${liveStats?.plan ?? "starter"}`,
+      icon:       <TrendingUp size={17} />,
+      iconBg:     "bg-pink-100 dark:bg-pink-500/15",
+      iconColor:  "text-pink-600 dark:text-pink-400",
     },
   ];
 
@@ -82,8 +93,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-4 md:p-0"> {/* Added padding for mobile view container */}
-      {/* Header */}
+    <div>
+      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-7">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight transition-colors"
@@ -91,7 +102,7 @@ export default function Dashboard() {
             Dashboard
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            Welcome back, {firstName} 👋 <span className="hidden xs:inline">Here's what's happening today.</span>
+            Welcome back, {firstName} 👋 Here's what's happening today.
           </p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -104,7 +115,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats grid: 1 col on mobile, 2 on tablet, 4 on desktop */}
+      {/* ── Stats Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {displayStats.map((s, i) => (
           <div key={i} className="rounded-xl p-5 border border-slate-200 dark:border-white/5 bg-white dark:bg-[#16161e] transition-colors shadow-sm">
@@ -118,20 +129,18 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Bottom section: 1 col on mobile, 2 on large screens */}
+      {/* ── Bottom Row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        
-        {/* Recent conversations */}
+
+        {/* Recent Conversations */}
         <div className="rounded-xl p-5 border border-slate-200 dark:border-white/5 bg-white dark:bg-[#16161e] transition-colors shadow-sm overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Recent Conversations</div>
-            <button onClick={() => navigate("/DigiChat/chat-logs")}
+            <button onClick={() => navigate("/chat-logs")}
               className="text-xs text-indigo-600 dark:text-indigo-400 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#1e1e2e] hover:bg-slate-100 dark:hover:bg-white/5 transition-all">
               View all
             </button>
           </div>
-          
-          {/* Mobile Table Container: Scrollable horizontally */}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[400px]">
               <thead>
@@ -143,7 +152,7 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {liveChats.length > 0 ? liveChats.map((c, i) => (
-                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] cursor-pointer transition-all">
+                  <tr key={i} className="border-b border-slate-50 dark:border-white/[0.02] hover:bg-slate-50 dark:hover:bg-white/[0.02] cursor-pointer transition-all">
                     <td className="py-3 text-sm text-slate-700 dark:text-slate-300">
                       V-#{c.visitorId?.slice(-4) || "0000"}
                     </td>
@@ -163,8 +172,12 @@ export default function Dashboard() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan="4" className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                      No data found
+                    <td colSpan="4" className="py-10 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <MessageSquare size={28} className="text-slate-300 dark:text-slate-600" />
+                        <span className="text-sm text-slate-500 dark:text-slate-400">No conversations yet</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500">Embed your widget to start</span>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -173,7 +186,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Widget status + chart */}
+        {/* Widget Status + Chart */}
         <div className="rounded-xl p-5 border border-slate-200 dark:border-white/5 bg-white dark:bg-[#16161e] transition-colors shadow-sm">
           <div className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Widget Status</div>
 
@@ -182,25 +195,40 @@ export default function Dashboard() {
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs text-slate-500 dark:text-slate-400">Monthly Usage</span>
               <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                {liveStats?.messageCount ?? 0}/{liveStats?.usageLimit ?? 100}
+                {liveStats?.messageCount ?? 0} / {liveStats?.usageLimit ?? 100}
               </span>
             </div>
             <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-white/[0.06]">
-              <div className="h-1.5 rounded-full transition-all"
+              <div className="h-1.5 rounded-full transition-all duration-700"
                 style={{
-                  width: `${Math.min(((liveStats?.messageCount ?? 0) / (liveStats?.usageLimit ?? 100)) * 100, 100)}%`,
-                  background: "linear-gradient(to right,#4f46e5,#818cf8)"
+                  width: `${usagePct}%`,
+                  background: usagePct > 80
+                    ? "linear-gradient(to right,#ef4444,#f87171)"
+                    : "linear-gradient(to right,#4f46e5,#818cf8)"
                 }} />
             </div>
+            {usagePct > 80 && (
+              <p className="text-xs text-red-500 mt-1.5">⚠ Approaching limit — consider upgrading your plan.</p>
+            )}
           </div>
 
-          {/* Activity chart: Hidden or smaller on mobile to save space if needed */}
+          {/* Weekly activity chart — real data */}
           <div className="p-3.5 rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#0f0f13] transition-colors">
-            <div className="text-xs text-slate-500 dark:text-slate-400 mb-3">This week's activity</div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-slate-500 dark:text-slate-400">This week's activity</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">
+                {weekData.reduce((a, b) => a + b, 0)} conversations
+              </span>
+            </div>
             <div className="flex items-end gap-1 h-16 sm:h-20">
               {weekBars.map((h, i) => (
-                <div key={i} className="flex-1 rounded-t transition-all hover:opacity-80"
-                  style={{ height: `${h}%`, background: "linear-gradient(to top,#4f46e5,#818cf8)" }} />
+                <div key={i} className="flex-1 rounded-t transition-all hover:opacity-80 cursor-pointer relative group"
+                  style={{ height: `${h}%`, background: "linear-gradient(to top,#4f46e5,#818cf8)" }}>
+                  {/* Tooltip */}
+                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap pointer-events-none z-10">
+                    {weekData[i]}
+                  </div>
+                </div>
               ))}
             </div>
             <div className="flex mt-2">

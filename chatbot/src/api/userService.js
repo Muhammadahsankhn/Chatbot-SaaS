@@ -1,57 +1,20 @@
 import api from "./api";
 
-// Get user's API key
-export const getApiKey = async () => {
-  const res = await api.get("/users/api-key");
-  return res.data;
-};
+export const getApiKey        = ()      => api.get("/users/api-key").then(r => r.data);
+export const regenerateApiKey = ()      => api.post("/users/api-key/regenerate").then(r => r.data);
 
-// Regenerate API key
-export const regenerateApiKey = async () => {
-  const res = await api.post("/users/api-key/regenerate");
-  return res.data;
-};
+export const getDashboardStats      = ()        => api.get("/users/stats").then(r => r.data);
+export const getRecentConversations = (limit=4) => api.get(`/users/conversations?limit=${limit}`).then(r => r.data);
+export const getWeeklyActivity      = ()        => api.get("/users/weekly-activity").then(r => r.data);
 
-// Get dashboard stats
-// Returns: totalConversations, totalMessages, activeToday, messageCount, plan, usageLimit
-export const getDashboardStats = async () => {
-  const res = await api.get("/users/stats");
-  return res.data;
-};
+export const saveWidgetConfig = (config)   => api.put("/users/widget-config", config).then(r => r.data);
+export const getWidgetConfig  = ()         => api.get("/users/widget-config").then(r => r.data);
 
-// Get recent conversations
-export const getRecentConversations = async (limit = 10) => {
-  const res = await api.get(`/users/conversations?limit=${limit}`);
-  return res.data;
-};
+export const addDomain    = (domain) => api.post("/users/domains", { domain }).then(r => r.data);
+export const removeDomain = (domain) => api.delete("/users/domains", { data: { domain } }).then(r => r.data);
+export const getDomains   = ()       => api.get("/users/domains").then(r => r.data);
 
-// Save widget configuration
-// config: { botName, welcomeMessage, color, position, theme, systemPrompt }
-export const saveWidgetConfig = async (config) => {
-  const res = await api.put("/users/widget-config", config);
-  return res.data;
-};
-
-// Get widget configuration
-export const getWidgetConfig = async () => {
-  const res = await api.get("/users/widget-config");
-  return res.data;
-};
-
-// Add allowed domain
-export const addDomain = async (domain) => {
-  const res = await api.post("/users/domains", { domain });
-  return res.data;
-};
-
-// Remove allowed domain
-export const removeDomain = async (domain) => {
-  const res = await api.delete("/users/domains", { data: { domain } });
-  return res.data;
-};
-
-// Get all allowed domains
-export const getDomains = async () => {
-  const res = await api.get("/users/domains");
-  return res.data;
-};
+export const updateProfile  = (data)     => api.put("/users/profile", data).then(r => r.data);
+export const changePassword = (data)     => api.put("/users/password", data).then(r => r.data);
+export const getAllChats     = (params)   => api.get("/users/all-conversations", { params }).then(r => r.data);
+export const getAnalytics   = ()         => api.get("/users/analytics").then(r => r.data);
