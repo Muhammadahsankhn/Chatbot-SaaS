@@ -12,8 +12,8 @@ const PORT = process.env.PORT || 3002;
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log("Connected to MongoDB"); // Debug Log 2
-        app.listen(PORT, () => {
-            console.log(`Server is running on http://localhost:${PORT}`); // Debug Log 3
+        app.listen(PORT, "0.0.0.0", () => {  // ← "0.0.0.0" means all interfaces
+            console.log("Server running on port 5002");
         });
     })
     .catch((err) => {

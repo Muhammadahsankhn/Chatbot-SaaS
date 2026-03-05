@@ -89,11 +89,18 @@ module.exports.sendMessage = async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid API key" });
 
     // 2. Check domain allowlist
+
     const origin = req.headers.origin || req.headers.referer || "";
     if (user.domains && user.domains.length > 0) {
-      const allowed = user.domains.some((d) => origin.includes(d));
-      if (!allowed)
-        return res.status(403).json({ success: false, message: "Domain not authorized" });
+      // Always allow local network for development
+      const isLocal = !origin ||
+        /192\.168\.|10\.0\.|10\.1\.|localhost|127\.0\.0\.1/.test(origin);
+
+      if (!isLocal) {
+        const allowed = user.domains.some((d) => origin.includes(d));
+        if (!allowed)
+          return res.status(403).json({ success: false, message: "Domain not authorized" });
+      }
     }
 
     // 3. Reset billing cycle if needed
@@ -184,7 +191,7 @@ async function saveConversation({ userId, sessionId, visitorId, page, userMessag
         page,
         messages: [
           { role: "user", text: userMessage },
-          { role: "bot",  text: botReply },
+          { role: "bot", text: botReply },
         ],
         messageCount: 2,
         totalTokensUsed: tokensUsed,
@@ -193,7 +200,7 @@ async function saveConversation({ userId, sessionId, visitorId, page, userMessag
     } else {
       // Existing session — append messages
       convo.messages.push({ role: "user", text: userMessage });
-      convo.messages.push({ role: "bot",  text: botReply });
+      convo.messages.push({ role: "bot", text: botReply });
       convo.messageCount += 2;
       convo.totalTokensUsed += tokensUsed;
       await convo.save();

@@ -18,21 +18,21 @@ router.get("/session/:sessionId", auth, async (req, res) => {
   try {
     const conversation = await conversationModel.findOne({
       sessionId: req.params.sessionId,
-      userId:    req.user.id,
+      userId: req.user.id,
     });
+    if (!conversation) return res.status(404).json({ success: false });
 
-    if (!conversation) {
-      return res.status(404).json({ success: false, message: "Session not found." });
-    }
-
-    // ← adjust this field name to match your messageModel
-    const messages = conversation.messages || conversation.history || conversation.chats || [];
+    // ✅ Your model uses `text` field — normalize to `content` for frontend
+    const messages = (conversation.messages || []).map(m => ({
+      role:    m.role,
+      content: m.text,   // ← map text → content
+    }));
 
     return res.json({ success: true, messages });
   } catch (err) {
-    console.error("Session messages error:", err.message);
     return res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 module.exports = router;

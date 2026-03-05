@@ -1,9 +1,9 @@
-const userModel         = require("../model/userModels");
+const userModel = require("../model/userModels");
 const conversationModel = require("../model/messageModel");   // ← your actual file
-const bcrypt            = require("bcrypt");
+const bcrypt = require("bcrypt");
 const { generateToken } = require("../utils/generateToken");
-const { v4: uuidv4 }   = require("uuid");
-const mongoose          = require("mongoose");
+const { v4: uuidv4 } = require("uuid");
+const mongoose = require("mongoose");
 
 // ── Register ──
 module.exports.registerUser = async (req, res) => {
@@ -30,10 +30,10 @@ module.exports.registerUser = async (req, res) => {
       message: "Account created successfully!",
       token,                              // ← frontend saves to localStorage
       user: {
-        id:       newUser._id,
+        id: newUser._id,
         fullname: newUser.fullname,
-        email:    newUser.email,
-        plan:     newUser.plan || "starter",
+        email: newUser.email,
+        plan: newUser.plan || "starter",
       }
     });
   } catch (err) {
@@ -65,10 +65,10 @@ module.exports.loginUser = async (req, res) => {
       success: true,
       token,                              // ← was missing before, now saves to localStorage
       user: {
-        id:       user._id,
+        id: user._id,
         fullname: user.fullname,
-        email:    user.email,
-        plan:     user.plan || "starter",
+        email: user.email,
+        plan: user.plan || "starter",
       }
     });
   } catch (err) {
@@ -142,8 +142,8 @@ module.exports.getDashboardStats = async (req, res) => {
         totalMessages,
         activeToday,
         messageCount: user.messageCount || 0,
-        usageLimit:   user.usageLimit   || 100,
-        plan:         user.plan         || "starter",
+        usageLimit: user.usageLimit || 100,
+        plan: user.plan || "starter",
       }
     });
   } catch (err) {
@@ -237,7 +237,7 @@ module.exports.updateProfile = async (req, res) => {
 module.exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const user  = await userModel.findById(req.user.id);
+    const user = await userModel.findById(req.user.id);
     const match = await bcrypt.compare(currentPassword, user.password);
     if (!match) return res.status(400).json({ success: false, message: "Current password incorrect." });
     const hash = await bcrypt.hash(newPassword, 10);
@@ -253,7 +253,7 @@ module.exports.getAllConversations = async (req, res) => {
   try {
     const { page = 1, limit = 20, search = "" } = req.query;
     const userId = new mongoose.Types.ObjectId(req.user.id);
-    const query  = { userId };
+    const query = { userId };
     if (search) query.visitorId = { $regex: search, $options: "i" };
     const total = await conversationModel.countDocuments(query);
     const conversations = await conversationModel
@@ -261,7 +261,7 @@ module.exports.getAllConversations = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
-      .select("sessionId visitorId page messageCount status createdAt");
+      .select("sessionId visitorId page messageCount status createdAt messages");
     return res.json({ success: true, conversations, total, page: parseInt(page) });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -278,7 +278,7 @@ module.exports.getAnalytics = async (req, res) => {
       { $group: { _id: null, totalMessages: { $sum: "$messageCount" } } }
     ]);
     const totalMessages = agg[0]?.totalMessages || 0;
-    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     const activeToday = await conversationModel.countDocuments({ userId, createdAt: { $gte: todayStart } });
     return res.json({ success: true, analytics: { totalConversations, totalMessages, activeToday } });
   } catch (err) {
@@ -293,7 +293,7 @@ module.exports.getAnalytics = async (req, res) => {
 module.exports.getWeeklyActivity = async (req, res) => {
   try {
     const userId = new mongoose.Types.ObjectId(req.user.id);
-    const now    = new Date();
+    const now = new Date();
     const monday = new Date(now);
     monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     monday.setHours(0, 0, 0, 0);
