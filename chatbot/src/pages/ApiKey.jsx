@@ -3,14 +3,14 @@ import { Copy, RefreshCw, Eye, EyeOff, ShieldCheck, AlertTriangle, Loader } from
 import { getApiKey, regenerateApiKey, getDashboardStats } from "../api/userService";
 
 export default function ApiKey() {
-  const [apiKey,     setApiKey]     = useState("");
-  const [visible,    setVisible]    = useState(false);
-  const [copied,     setCopied]     = useState(false);
-  const [showRegen,  setShowRegen]  = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showRegen, setShowRegen] = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
-  const [loading,    setLoading]    = useState(true);
-  const [stats,      setStats]      = useState(null);
-  const [error,      setError]      = useState("");
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(null);
+  const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
   // ── Load API key + usage stats on mount ──
@@ -21,7 +21,7 @@ export default function ApiKey() {
           getApiKey(),
           getDashboardStats(),
         ]);
-        if (keyRes.success)   setApiKey(keyRes.apiKey || "");
+        if (keyRes.success) setApiKey(keyRes.apiKey || "");
         if (statsRes.success) setStats(statsRes.stats);
       } catch (err) {
         setError("Failed to load API key. Please refresh.");
@@ -62,7 +62,8 @@ export default function ApiKey() {
     }
   };
 
-  const snippet = `<script\n  src="http://localhost:5002/digichat/widget.js"\n  data-api-key="${visible ? apiKey : masked}"\n></script>`;
+  const backendUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
+  const snippet = `<script\n  src="${backendUrl}/digichat/widget.js"\n  data-api-key="${visible ? apiKey : masked}"\n></script>`;
 
   const Card = ({ children, className = "" }) => (
     <div className={`rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-white/5 bg-white dark:bg-[#16161e] shadow-sm dark:shadow-none transition-colors ${className}`}>
@@ -156,20 +157,20 @@ export default function ApiKey() {
                 {
                   label: "Messages Used",
                   value: (stats?.messageCount ?? 0).toLocaleString(),
-                  max:   stats?.usageLimit ?? 100,
-                  cur:   stats?.messageCount ?? 0,
+                  max: stats?.usageLimit ?? 100,
+                  cur: stats?.messageCount ?? 0,
                 },
                 {
                   label: "Total Conversations",
                   value: (stats?.totalConversations ?? 0).toLocaleString(),
-                  max:   null,
-                  cur:   null,
+                  max: null,
+                  cur: null,
                 },
                 {
                   label: "Active Today",
                   value: (stats?.activeToday ?? 0).toLocaleString(),
-                  max:   null,
-                  cur:   null,
+                  max: null,
+                  cur: null,
                 },
               ].map((u, i) => (
                 <div key={i} className="p-4 rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#0a0a0f] transition-colors">

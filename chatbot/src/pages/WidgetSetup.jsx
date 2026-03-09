@@ -6,35 +6,36 @@ import { getApiKey } from "../api/userService";
 const steps = ["Copy Script", "Add to Website", "Verify"];
 
 const platforms = [
-  { name: "WordPress",       desc: "Use 'Insert Headers and Footers' plugin" },
-  { name: "Shopify",         desc: "Online Store → Themes → Edit Code → theme.liquid" },
-  { name: "Webflow",         desc: "Project Settings → Custom Code → Footer Code" },
+  { name: "WordPress", desc: "Use 'Insert Headers and Footers' plugin" },
+  { name: "Shopify", desc: "Online Store → Themes → Edit Code → theme.liquid" },
+  { name: "Webflow", desc: "Project Settings → Custom Code → Footer Code" },
   { name: "Next.js / React", desc: "Add to _document.js or use Script component" },
-  { name: "Plain HTML",      desc: "Paste before </body> in your HTML file" },
+  { name: "Plain HTML", desc: "Paste before </body> in your HTML file" },
 ];
 
 export default function WidgetSetup() {
   const navigate = useNavigate();
 
-  const [step,         setStep]         = useState(0);
-  const [apiKey,       setApiKey]        = useState("");
-  const [loading,      setLoading]       = useState(true);
-  const [copied,       setCopied]        = useState(false);
-  const [url,          setUrl]           = useState("");
-  const [verifying,    setVerifying]     = useState(false);
-  const [verified,     setVerified]      = useState(false);
-  const [verifyError,  setVerifyError]   = useState("");
+  const [step, setStep] = useState(0);
+  const [apiKey, setApiKey] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [url, setUrl] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [verifyError, setVerifyError] = useState("");
 
   // ── Load real API key ──
   useEffect(() => {
     getApiKey()
       .then(res => { if (res.success) setApiKey(res.apiKey || ""); })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
-  const widgetSrc = `https://www.digicareproducts.com/digichat/widget.js`;
-  const snippet   = `<script\n  src="${widgetSrc}"\n  data-api-key="${apiKey || "loading..."}"\n></script>`;
+  const backendUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
+  const widgetSrc = `${backendUrl}/digichat/widget.js`;
+  const snippet = `<script\n  src="${widgetSrc}"\n  data-api-key="${apiKey || "loading..."}"\n></script>`;
 
   const copy = (text) => {
     navigator.clipboard.writeText(text);
@@ -103,9 +104,9 @@ export default function WidgetSetup() {
           <div key={i} className="flex items-center shrink-0">
             <div className="flex items-center gap-2.5">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all
-                ${i < step  ? "bg-emerald-500 border-emerald-500 text-white"
-                : i === step ? "border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/15"
-                             : "border-slate-200 dark:border-white/10 text-slate-400 bg-transparent"}`}>
+                ${i < step ? "bg-emerald-500 border-emerald-500 text-white"
+                  : i === step ? "border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/15"
+                    : "border-slate-200 dark:border-white/10 text-slate-400 bg-transparent"}`}>
                 {i < step ? <CheckCircle size={15} /> : i + 1}
               </div>
               <span className={`text-sm whitespace-nowrap ${i === step ? "text-slate-900 dark:text-slate-200 font-semibold" : "text-slate-500"}`}>
@@ -136,7 +137,7 @@ export default function WidgetSetup() {
                 <div>
                   <span className="text-xs text-slate-500">Your API Key: </span>
                   <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">
-                    {apiKey ? apiKey.slice(0,12) + "••••••••" + apiKey.slice(-4) : "—"}
+                    {apiKey ? apiKey.slice(0, 12) + "••••••••" + apiKey.slice(-4) : "—"}
                   </span>
                 </div>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400 font-medium">● Active</span>

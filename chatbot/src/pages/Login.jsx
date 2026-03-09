@@ -24,8 +24,8 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5002";
-    window.location.href = `${backendUrl}/auth/google`;
+    const backendUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
+    window.location.href = `${backendUrl}/users/auth/google`;
   };
 
   const submit = async (e) => {
@@ -48,7 +48,7 @@ export default function Login() {
         setError(loginData.message || "Login failed.");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong. Please try again.");
+      setError(err.response?.data?.detail || err.response?.data?.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

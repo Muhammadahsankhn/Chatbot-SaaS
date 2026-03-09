@@ -1,35 +1,26 @@
 import os
-import google.generativeai as genai
+from groq import Groq
 from dotenv import load_dotenv
 from typing import List
 
 load_dotenv()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY is not set in .env file")
+GROQ_API_KEY = os.getenv("groq_Api_Key")
+if not GROQ_API_KEY:
+    raise ValueError("groq_Api_Key is not set in .env file")
 
-genai.configure(api_key=GEMINI_API_KEY)
+client = Groq(api_key=GROQ_API_KEY)
 
-MODEL = "gemini-2.5-flash"
-
-GENERATION_CONFIG = {
-    "temperature": 0.7,       # ← increased from 0.4 for more natural responses
-    "top_p": 0.95,
-    "top_k": 40,
-    "max_output_tokens": 1024,
-}
-
-SAFETY_SETTINGS = [
-    {"category": "HARM_CATEGORY_HARASSMENT",        "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH",       "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-]
+# ── Groq free tier: 14,400 requests/day ──
+# Available models:
+#   llama-3.3-70b-versatile  → best quality
+#   llama-3.1-8b-instant     → fastest
+#   mixtral-8x7b-32768       → good balance
+MODEL = "llama-3.3-70b-versatile"
 
 
 def build_system_prompt(bot_config: dict) -> str:
-    bot_name    = bot_config.get("botName", "Assistant")
+    bot_name      = bot_config.get("botName", "Assistant")
     custom_prompt = bot_config.get("systemPrompt", "")
 
     prompt = f"""You are {bot_name}, a friendly and helpful AI assistant embedded on a website.
@@ -68,9 +59,7 @@ But you are also a smart, conversational assistant — not a rigid FAQ bot.
 
 
 def build_message_with_context(message: str, context_chunks: List[str]) -> str:
-    """Build message — with context if available, without if not."""
     if not context_chunks:
-        # No context — just answer naturally
         return f"""VISITOR MESSAGE: {message}
 
 Note: No specific website content is available for this query. 
@@ -95,30 +84,36 @@ Respond helpfully and naturally."""
 
 
 def get_gemini_reply(
-    message: str,
-    bot_config: dict = {},
+    message:        str,
+    bot_config:     dict = {},
     context_chunks: List[str] = []
 ) -> dict:
     try:
-        model = genai.GenerativeModel(
-            model_name=MODEL,
-            generation_config=GENERATION_CONFIG,
-            safety_settings=SAFETY_SETTINGS,
-            system_instruction=build_system_prompt(bot_config)
+        full_message  = build_message_with_context(message, context_chunks)
+        system_prompt = build_system_prompt(bot_config)
+
+        response = client.chat.completions.create(
+            model    = MODEL,
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": full_message},
+            ],
+            temperature       = 0.7,
+            max_tokens        = 1024,
+            top_p             = 0.95,
         )
 
-        full_message = build_message_with_context(message, context_chunks)
-        response     = model.generate_content(full_message)
-
+        reply = response.choices[0].message.content
+        print(f"[Groq OK] {len(reply)} chars")
         return {
             "success":     True,
-            "reply":       response.text,
-            "tokensUsed":  response.usage_metadata.total_token_count
-                           if hasattr(response, "usage_metadata") else None,
+            "reply":       reply,
+            "tokensUsed":  response.usage.total_tokens if response.usage else None,
             "contextUsed": len(context_chunks) > 0
         }
 
     except Exception as e:
+        print(f"[Groq ERROR] {type(e).__name__}: {e}")
         return {
             "success": False,
             "reply":   "I'm having a little trouble right now. Please try again in a moment!",
@@ -127,44 +122,58 @@ def get_gemini_reply(
 
 
 def get_gemini_reply_with_history(
-    message: str,
-    history: List[dict],
-    bot_config: dict = {},
+    message:        str,
+    history:        List[dict],
+    bot_config:     dict = {},
     context_chunks: List[str] = []
 ) -> dict:
     try:
-        model = genai.GenerativeModel(
-            model_name=MODEL,
-            generation_config=GENERATION_CONFIG,
-            safety_settings=SAFETY_SETTINGS,
-            system_instruction=build_system_prompt(bot_config)
-        )
+        full_message  = build_message_with_context(message, context_chunks)
+        system_prompt = build_system_prompt(bot_config)
 
-        # ── Convert history to Gemini format ──
-        # Filter out any malformed history items
-        gemini_history = []
+        # ── Build messages list for Groq ──
+        # Groq uses OpenAI-compatible format: role = system/user/assistant
+        messages = [{"role": "system", "content": system_prompt}]
+
         for item in (history or []):
             role = item.get("role", "")
-            text = item.get("text", "")
-            if role in ("user", "model") and text.strip():
-                gemini_history.append({
-                    "role":  role,
-                    "parts": [{"text": text}]
-                })
+            text = item.get("text", item.get("content", ""))
+            if not role or not text or not text.strip():
+                continue
+            # Map bot/model → assistant (OpenAI format)
+            groq_role = "assistant" if role in ("assistant", "bot", "model") else "user"
+            messages.append({"role": groq_role, "content": text})
 
-        chat_session = model.start_chat(history=gemini_history)
-        full_message = build_message_with_context(message, context_chunks)
-        response     = chat_session.send_message(full_message)
+        # ── Fix consecutive same-role messages ──
+        merged = [messages[0]]  # keep system message
+        for msg in messages[1:]:
+            if merged[-1]["role"] == msg["role"] and merged[-1]["role"] != "system":
+                merged[-1]["content"] += "\n" + msg["content"]
+            else:
+                merged.append(msg)
 
+        # ── Add current user message ──
+        merged.append({"role": "user", "content": full_message})
+
+        response = client.chat.completions.create(
+            model       = MODEL,
+            messages    = merged,
+            temperature = 0.7,
+            max_tokens  = 1024,
+            top_p       = 0.95,
+        )
+
+        reply = response.choices[0].message.content
+        print(f"[Groq OK] {len(reply)} chars")
         return {
             "success":     True,
-            "reply":       response.text,
-            "tokensUsed":  response.usage_metadata.total_token_count
-                           if hasattr(response, "usage_metadata") else None,
+            "reply":       reply,
+            "tokensUsed":  response.usage.total_tokens if response.usage else None,
             "contextUsed": len(context_chunks) > 0
         }
 
     except Exception as e:
+        print(f"[Groq ERROR - with_history] {type(e).__name__}: {e}")
         return {
             "success": False,
             "reply":   "I'm having a little trouble right now. Please try again in a moment!",

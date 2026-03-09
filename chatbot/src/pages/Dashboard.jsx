@@ -10,10 +10,10 @@ const days = ["M", "T", "W", "T", "F", "S", "S"];
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [liveStats, setLiveStats]   = useState(null);
-  const [liveChats, setLiveChats]   = useState([]);
-  const [weekData,  setWeekData]    = useState([0,0,0,0,0,0,0]);
-  const [isLoading, setIsLoading]   = useState(true);
+  const [liveStats, setLiveStats] = useState(null);
+  const [liveChats, setLiveChats] = useState([]);
+  const [weekData, setWeekData] = useState([0, 0, 0, 0, 0, 0, 0]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -25,7 +25,7 @@ export default function Dashboard() {
         ]);
         if (statsRes.success) setLiveStats(statsRes.stats);
         if (chatsRes.success) setLiveChats(chatsRes.conversations || []);
-        if (weekRes.success)  setWeekData(weekRes.data || [0,0,0,0,0,0,0]);
+        if (weekRes.success) setWeekData(weekRes.stats?.weeklyData || [0, 0, 0, 0, 0, 0, 0]);
       } catch (err) {
         console.error("Dashboard load error:", err);
       } finally {
@@ -38,46 +38,46 @@ export default function Dashboard() {
   const firstName = user?.fullname?.split(" ")[0] || "there";
 
   // Convert raw counts to percentages for bar height
-  const maxVal    = Math.max(...weekData, 1);
-  const weekBars  = weekData.map(v => Math.round((v / maxVal) * 100) || 4);
+  const maxVal = Math.max(...weekData, 1);
+  const weekBars = weekData.map(v => Math.round((v / maxVal) * 100) || 4);
 
-  const usagePct  = Math.min(
+  const usagePct = Math.min(
     ((liveStats?.messageCount ?? 0) / (liveStats?.usageLimit ?? 100)) * 100,
     100
   );
 
   const displayStats = [
     {
-      label:      "Total Conversations",
-      value:      liveStats?.totalConversations ?? 0,
-      change:     "Lifetime",
-      icon:       <MessageSquare size={17} />,
-      iconBg:     "bg-indigo-100 dark:bg-indigo-500/15",
-      iconColor:  "text-indigo-600 dark:text-indigo-400",
+      label: "Total Conversations",
+      value: liveStats?.totalConversations ?? 0,
+      change: "Lifetime",
+      icon: <MessageSquare size={17} />,
+      iconBg: "bg-indigo-100 dark:bg-indigo-500/15",
+      iconColor: "text-indigo-600 dark:text-indigo-400",
     },
     {
-      label:      "Total Messages",
-      value:      liveStats?.totalMessages ?? 0,
-      change:     "Lifetime",
-      icon:       <Users size={17} />,
-      iconBg:     "bg-emerald-100 dark:bg-emerald-500/15",
-      iconColor:  "text-emerald-600 dark:text-emerald-400",
+      label: "Total Messages",
+      value: liveStats?.totalMessages ?? 0,
+      change: "Lifetime",
+      icon: <Users size={17} />,
+      iconBg: "bg-emerald-100 dark:bg-emerald-500/15",
+      iconColor: "text-emerald-600 dark:text-emerald-400",
     },
     {
-      label:      "Active Today",
-      value:      liveStats?.activeToday ?? 0,
-      change:     "Today",
-      icon:       <Activity size={17} />,
-      iconBg:     "bg-amber-100 dark:bg-amber-500/15",
-      iconColor:  "text-amber-600 dark:text-amber-400",
+      label: "Active Today",
+      value: liveStats?.activeToday ?? 0,
+      change: "Today",
+      icon: <Activity size={17} />,
+      iconBg: "bg-amber-100 dark:bg-amber-500/15",
+      iconColor: "text-amber-600 dark:text-amber-400",
     },
     {
-      label:      "Usage",
-      value:      `${liveStats?.messageCount ?? 0} / ${liveStats?.usageLimit ?? 100}`,
-      change:     `Plan: ${liveStats?.plan ?? "starter"}`,
-      icon:       <TrendingUp size={17} />,
-      iconBg:     "bg-pink-100 dark:bg-pink-500/15",
-      iconColor:  "text-pink-600 dark:text-pink-400",
+      label: "Usage",
+      value: `${liveStats?.messageCount ?? 0} / ${liveStats?.usageLimit ?? 100}`,
+      change: `Plan: ${liveStats?.plan ?? "starter"}`,
+      icon: <TrendingUp size={17} />,
+      iconBg: "bg-pink-100 dark:bg-pink-500/15",
+      iconColor: "text-pink-600 dark:text-pink-400",
     },
   ];
 
@@ -161,11 +161,10 @@ export default function Dashboard() {
                     </td>
                     <td className="py-3 text-sm text-slate-600 dark:text-slate-400">{c.messageCount || 0}</td>
                     <td className="py-3">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        c.status === "active"
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${c.status === "active"
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
                           : "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-400"
-                      }`}>
+                        }`}>
                         {c.status || "ended"}
                       </span>
                     </td>

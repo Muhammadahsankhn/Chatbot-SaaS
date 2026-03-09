@@ -40,3 +40,6 @@ data/*.csv
 .idea/
 *.swp
 *.log
+
+
+demo.html

@@ -16,6 +16,7 @@ import Analytics     from "./pages/Analytics";
 import Settings      from "./pages/Settings";
 import Plans         from "./pages/Plans";
 import Preloader     from "./components/Preloader";
+import TrainBot from "./pages/TrainBot";
 
 function Layout({ children }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -77,13 +78,14 @@ export default function App() {
             <Routes>
               {/* Public */}
               <Route path="/login"         element={<Login />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/users/auth/google/callback" element={<AuthCallback />} />
 
               {/* Root */}
               <Route path="/" element={<Navigate to="/login" replace />} />
 
               {/* Protected */}
               <Route path="/dashboard"     element={<ProtectedLayout><Dashboard     /></ProtectedLayout>} />
+              <Route path="/train-bot"     element={<ProtectedLayout><TrainBot     /></ProtectedLayout>} />
               <Route path="/api-key"       element={<ProtectedLayout><ApiKey        /></ProtectedLayout>} />
               <Route path="/widget-setup"  element={<ProtectedLayout><WidgetSetup   /></ProtectedLayout>} />
               <Route path="/customization" element={<ProtectedLayout><Customization /></ProtectedLayout>} />

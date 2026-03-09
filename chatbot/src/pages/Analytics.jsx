@@ -11,10 +11,10 @@ const Card = ({ children, className = "" }) => (
 );
 
 export default function Analytics() {
-  const [analytics,  setAnalytics]  = useState(null);
-  const [weekMsgs,   setWeekMsgs]   = useState([0,0,0,0,0,0,0]); // conversations per day
-  const [topPages,   setTopPages]   = useState([]);
-  const [loading,    setLoading]    = useState(true);
+  const [analytics, setAnalytics] = useState(null);
+  const [weekMsgs, setWeekMsgs] = useState([0, 0, 0, 0, 0, 0, 0]); // conversations per day
+  const [topPages, setTopPages] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -26,7 +26,7 @@ export default function Analytics() {
         ]);
 
         if (analyticsRes.success) setAnalytics(analyticsRes.analytics);
-        if (weekRes.success)      setWeekMsgs(weekRes.data || [0,0,0,0,0,0,0]);
+        if (weekRes.success) setWeekMsgs(weekRes.stats?.weeklyData || [0, 0, 0, 0, 0, 0, 0]);
 
         // Build top pages from conversation data
         if (chatsRes.success && chatsRes.conversations?.length) {
@@ -65,38 +65,38 @@ export default function Analytics() {
 
   const kpis = [
     {
-      label:  "Total Messages",
-      value:  (analytics?.totalMessages ?? 0).toLocaleString(),
+      label: "Total Messages",
+      value: (analytics?.totalMessages ?? 0).toLocaleString(),
       change: analytics?.totalMessages > 0 ? "+live" : "0",
-      icon:   MessageCircle,
-      color:  "text-indigo-500",
-      up:     true,
+      icon: MessageCircle,
+      color: "text-indigo-500",
+      up: true,
     },
     {
-      label:  "Total Conversations",
-      value:  (analytics?.totalConversations ?? 0).toLocaleString(),
+      label: "Total Conversations",
+      value: (analytics?.totalConversations ?? 0).toLocaleString(),
       change: analytics?.totalConversations > 0 ? "+live" : "0",
-      icon:   Users,
-      color:  "text-emerald-500",
-      up:     true,
+      icon: Users,
+      color: "text-emerald-500",
+      up: true,
     },
     {
-      label:  "Active Today",
-      value:  (analytics?.activeToday ?? 0).toLocaleString(),
+      label: "Active Today",
+      value: (analytics?.activeToday ?? 0).toLocaleString(),
       change: analytics?.activeToday > 0 ? "today" : "0",
-      icon:   Zap,
-      color:  "text-amber-500",
-      up:     true,
+      icon: Zap,
+      color: "text-amber-500",
+      up: true,
     },
     {
-      label:  "Avg Msgs/Chat",
-      value:  analytics?.totalConversations > 0
-                ? (analytics.totalMessages / analytics.totalConversations).toFixed(1)
-                : "0",
+      label: "Avg Msgs/Chat",
+      value: analytics?.totalConversations > 0
+        ? (analytics.totalMessages / analytics.totalConversations).toFixed(1)
+        : "0",
       change: "lifetime",
-      icon:   TrendingUp,
-      color:  "text-rose-500",
-      up:     true,
+      icon: TrendingUp,
+      color: "text-rose-500",
+      up: true,
     },
   ];
 
@@ -192,12 +192,14 @@ export default function Analytics() {
           <div className="grid grid-cols-2 gap-4 mb-6">
             {[
               { label: "Total Conversations", value: analytics?.totalConversations ?? 0, color: "#6366f1" },
-              { label: "Total Messages",       value: analytics?.totalMessages ?? 0,       color: "#10b981" },
-              { label: "Active Today",         value: analytics?.activeToday ?? 0,         color: "#f59e0b" },
-              { label: "Msgs per Chat",        value: analytics?.totalConversations > 0
+              { label: "Total Messages", value: analytics?.totalMessages ?? 0, color: "#10b981" },
+              { label: "Active Today", value: analytics?.activeToday ?? 0, color: "#f59e0b" },
+              {
+                label: "Msgs per Chat", value: analytics?.totalConversations > 0
                   ? (analytics.totalMessages / analytics.totalConversations).toFixed(1)
                   : "0",
-                color: "#8b5cf6" },
+                color: "#8b5cf6"
+              },
             ].map((s, i) => (
               <div key={i} className="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
                 <div className="text-xs text-slate-500 mb-1">{s.label}</div>
@@ -277,9 +279,9 @@ export default function Analytics() {
             <>
               <div className="flex justify-around items-end h-24 mb-6">
                 {[
-                  { label: "Today",    value: analytics?.activeToday ?? 0,         color: "bg-indigo-400",  emoji: "📅" },
-                  { label: "Total",    value: analytics?.totalConversations ?? 0,   color: "bg-emerald-400", emoji: "💬" },
-                  { label: "Msgs",     value: analytics?.totalMessages ?? 0,        color: "bg-amber-400",   emoji: "✉️" },
+                  { label: "Today", value: analytics?.activeToday ?? 0, color: "bg-indigo-400", emoji: "📅" },
+                  { label: "Total", value: analytics?.totalConversations ?? 0, color: "bg-emerald-400", emoji: "💬" },
+                  { label: "Msgs", value: analytics?.totalMessages ?? 0, color: "bg-amber-400", emoji: "✉️" },
                 ].map((s, i) => {
                   const maxVal = Math.max(analytics?.totalMessages ?? 1, 1);
                   const h = Math.max(Math.round((s.value / maxVal) * 100), 8);

@@ -10,8 +10,8 @@ export const register = async (fullname, email, password) => {
 export const login = async (email, password) => {
   const res = await api.post("/users/login", { email, password });
 
-  console.log("backend response" , res.data);
-  
+  console.log("backend response", res.data);
+
   // Save token and user info to localStorage
   if (res.data.token) {
     localStorage.setItem("cb_token", res.data.token);
