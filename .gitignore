@@ -41,5 +41,5 @@ data/*.csv
 *.swp
 *.log
 
-
+.vscode
 demo.html
