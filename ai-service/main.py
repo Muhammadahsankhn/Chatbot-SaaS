@@ -1,8 +1,8 @@
 # ai-service/main.py
+
 import os
-import asyncio
 from contextlib import asynccontextmanager
-from fastapi              import FastAPI, Request
+from fastapi              import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses    import FileResponse, JSONResponse
 from fastapi.staticfiles  import StaticFiles
@@ -22,20 +22,12 @@ NODE_ENV        = os.getenv("NODE_ENV", "development")
 FRONTEND_BUILD  = os.getenv("FRONTEND_BUILD", "../chatbot/dist")
 
 
-# ── Lifespan: connect DB + start scheduler ──
+# ── Lifespan: connect/disconnect DB only ──
+# Scheduler removed — no more auto-crawling
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Connect MongoDB
     await connect_db()
-
-    # Start auto-refresh scheduler in background
-    from services.scheduler import auto_refresh_loop
-    scheduler_task = asyncio.create_task(auto_refresh_loop())
-
     yield
-
-    # Cleanup
-    scheduler_task.cancel()
     await close_db()
 
 
@@ -90,7 +82,11 @@ async def serve_widget():
 DIST_PATH = os.path.abspath(FRONTEND_BUILD)
 
 if os.path.exists(DIST_PATH):
-    app.mount("/digichat/assets", StaticFiles(directory=os.path.join(DIST_PATH, "assets")), name="assets")
+    app.mount(
+        "/digichat/assets",
+        StaticFiles(directory=os.path.join(DIST_PATH, "assets")),
+        name="assets"
+    )
 
     @app.get("/digichat/{full_path:path}")
     async def serve_react(full_path: str):
