@@ -27,9 +27,11 @@ export default function Customization() {
   useEffect(() => {
     getWidgetConfig()
       .then(res => {
-        if (res.success && res.config && Object.keys(res.config).length > 0) {
-          setCfg({ ...DEFAULT_CFG, ...res.config });
-          if (res.config.logoUrl) setLogoPreview(res.config.logoUrl);
+        // Backend returns { success, widgetConfig } (not res.config)
+        const cfg = res.widgetConfig || res.config;
+        if (res.success && cfg && Object.keys(cfg).length > 0) {
+          setCfg(prev => ({ ...prev, ...cfg }));
+          if (cfg.logoUrl) setLogoPreview(cfg.logoUrl);
         }
       })
       .catch(() => {})

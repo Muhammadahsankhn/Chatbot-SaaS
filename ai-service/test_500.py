@@ -1,6 +1,6 @@
 import urllib.request, json
 req = urllib.request.Request(
-    'http://localhost:8000/users/register',
+    'http://localhost:8001/users/register',
     data=json.dumps({"fullname": "Test", "email":"test10@example.com", "password": "pass"}).encode(),
     headers={'Content-Type': 'application/json'}
 )

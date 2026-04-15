@@ -1,21 +1,21 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider }  from "./context/AuthContext";
-import ProtectedRoute    from "./components/ProtectedRoute";
-import AuthCallback      from "./pages/AuthCallback";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AuthCallback from "./pages/AuthCallback";
 import { useState } from "react";
 import { Menu, Bot } from "lucide-react";
 
-import Sidebar       from "./components/Sidebar";
-import Login         from "./pages/Login";
-import Dashboard     from "./pages/Dashboard";
-import ApiKey        from "./pages/ApiKey";
-import WidgetSetup   from "./pages/WidgetSetup";
+import Sidebar from "./components/Sidebar";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import ApiKey from "./pages/ApiKey";
+import WidgetSetup from "./pages/WidgetSetup";
 import Customization from "./pages/Customization";
-import ChatLogs      from "./pages/ChatLogs";
-import Analytics     from "./pages/Analytics";
-import Settings      from "./pages/Settings";
-import Plans         from "./pages/Plans";
-import Preloader     from "./components/Preloader";
+import ChatLogs from "./pages/ChatLogs";
+import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
+import Plans from "./pages/Plans";
+import Preloader from "./components/Preloader";
 import TrainBot from "./pages/TrainBot";
 
 function Layout({ children }) {
@@ -77,22 +77,22 @@ export default function App() {
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');`}</style>
             <Routes>
               {/* Public */}
-              <Route path="/login"         element={<Login />} />
-              <Route path="/users/auth/google/callback" element={<AuthCallback />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
 
               {/* Root */}
               <Route path="/" element={<Navigate to="/login" replace />} />
 
               {/* Protected */}
-              <Route path="/dashboard"     element={<ProtectedLayout><Dashboard     /></ProtectedLayout>} />
-              <Route path="/train-bot"     element={<ProtectedLayout><TrainBot     /></ProtectedLayout>} />
-              <Route path="/api-key"       element={<ProtectedLayout><ApiKey        /></ProtectedLayout>} />
-              <Route path="/widget-setup"  element={<ProtectedLayout><WidgetSetup   /></ProtectedLayout>} />
+              <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+              <Route path="/train-bot" element={<ProtectedLayout><TrainBot /></ProtectedLayout>} />
+              <Route path="/api-key" element={<ProtectedLayout><ApiKey /></ProtectedLayout>} />
+              <Route path="/widget-setup" element={<ProtectedLayout><WidgetSetup /></ProtectedLayout>} />
               <Route path="/customization" element={<ProtectedLayout><Customization /></ProtectedLayout>} />
-              <Route path="/chat-logs"     element={<ProtectedLayout><ChatLogs      /></ProtectedLayout>} />
-              <Route path="/analytics"     element={<ProtectedLayout><Analytics     /></ProtectedLayout>} />
-              <Route path="/settings"      element={<ProtectedLayout><Settings      /></ProtectedLayout>} />
-              <Route path="/plans"         element={<ProtectedLayout><Plans         /></ProtectedLayout>} />
+              <Route path="/chat-logs" element={<ProtectedLayout><ChatLogs /></ProtectedLayout>} />
+              <Route path="/analytics" element={<ProtectedLayout><Analytics /></ProtectedLayout>} />
+              <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
+              <Route path="/plans" element={<ProtectedLayout><Plans /></ProtectedLayout>} />
             </Routes>
           </BrowserRouter>
         </AuthProvider>

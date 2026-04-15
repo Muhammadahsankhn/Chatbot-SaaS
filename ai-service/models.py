@@ -63,7 +63,7 @@ class ChatMessage(BaseModel):
     sessionId: Optional[str] = None
     visitorId: Optional[str] = None
     page:      Optional[str] = None
-    history:   Optional[List[dict]] = []
+    history:   Optional[List[dict]] = Field(default_factory=list)
 
 # ────────────────────────────────
 # ADMIN

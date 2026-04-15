@@ -6,7 +6,7 @@ import {
   Plus, Minus, Clock, Brain, Zap
 } from "lucide-react";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
 function authHeaders(json = true) {
   const token = localStorage.getItem("cb_token") || localStorage.getItem("token");
@@ -17,37 +17,38 @@ function authHeaders(json = true) {
 }
 
 const TABS = [
-  { id: "url",    Icon: Globe,    label: "Website URL",  sub: "Auto-scan your website" },
-  { id: "manual", Icon: PenLine,  label: "Manual Form",  sub: "Type your business info" },
-  { id: "file",   Icon: FileText, label: "Upload File",  sub: "CSV, Excel, PDF, Word" },
+  { id: "url", Icon: Globe, label: "Website URL", sub: "Auto-scan your website" },
+  { id: "manual", Icon: PenLine, label: "Manual Form", sub: "Type your business info" },
+  { id: "file", Icon: FileText, label: "Upload File", sub: "CSV, Excel, PDF, Word" },
 ];
 
 const defaultForm = {
   businessName: "", businessType: "", description: "",
-  products:  [{ name: "", price: "", available: "true" }],
-  services:  [""],
+  products: [{ name: "", price: "", available: "true" }],
+  services: [""],
   returnPolicy: "", deliveryInfo: "", workingHours: "",
   phone: "", whatsapp: "", email: "", address: "", extraInfo: "",
 };
 
 export default function TrainBot() {
-  const { user }          = useAuth();
-  const [tab, setTab]     = useState("url");
+  const { user } = useAuth();
+  const [tab, setTab] = useState("url");
   const [status, setStatus] = useState(null);
-  const [err, setErr]     = useState("");
-  const [ok, setOk]       = useState("");
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
 
   // url tab
-  const [url, setUrl]         = useState("");
+  const [url, setUrl] = useState("");
   const [crawling, setCrawling] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [urlProgress, setUrlProgress] = useState(null); // { status, pages_done, total, url }
 
   // manual tab
-  const [form, setForm]   = useState(defaultForm);
+  const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
 
   // file tab
-  const [file, setFile]       = useState(null);
+  const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
 
@@ -58,7 +59,7 @@ export default function TrainBot() {
       const r = await fetch(`${API}/ingest/status/${user.id}`, { headers: authHeaders() });
       const d = await r.json();
       if (d.success) setStatus(d.data);
-    } catch {}
+    } catch { }
   }
 
   function pollStatus(n = 0) {
@@ -69,39 +70,56 @@ export default function TrainBot() {
 
   function notify(msg, isErr = false) {
     if (isErr) { setErr(msg); setOk(""); }
-    else       { setOk(msg);  setErr(""); }
+    else { setOk(msg); setErr(""); }
   }
 
-  // ── URL crawl ──
+  // ── URL train via Jina.ai ──
   async function handleCrawl() {
     if (!url.trim()) return notify("Please enter your website URL.", true);
     let u = url.trim();
     if (!u.startsWith("http")) u = "https://" + u;
     setCrawling(true);
+    setUrlProgress({ status: "running", pages_done: 0, total: 0, url: u });
     try {
-      const r = await fetch(`${API}/ingest/crawl`, {
+      const r = await fetch(`${API}/ingest/url`, {
         method: "POST", headers: authHeaders(),
-        body: JSON.stringify({ userId: user.id, baseUrl: u, maxPages: maxPages() }),
+        body: JSON.stringify({ userId: user.id, url: u, maxPages: maxPages() }),
       });
       const d = await r.json();
-      d.success ? (notify(`✅ Crawling started for ${u}. Bot ready in ~2 minutes.`), setTimeout(() => pollStatus(), 5000))
-                : notify(d.message || "Failed to start crawling.", true);
-    } catch { notify("Connection error.", true); }
+      if (d.success) {
+        notify(`⚡ Fetching content from ${u}. Bot will be ready in 1–2 minutes.`);
+        pollProgress();
+      } else {
+        notify(d.message || "Failed to start training.", true);
+        setUrlProgress(null);
+      }
+    } catch { notify("Connection error.", true); setUrlProgress(null); }
     finally { setCrawling(false); }
   }
 
-  async function handleRefresh() {
-    setRefreshing(true);
-    try {
-      const r = await fetch(`${API}/ingest/refresh`, {
-        method: "POST", headers: authHeaders(),
-        body: JSON.stringify({ userId: user.id }),
-      });
-      const d = await r.json();
-      d.success ? (notify("🔄 Re-crawling started."), setTimeout(() => pollStatus(), 5000))
-                : notify(d.message || "Failed.", true);
-    } catch { notify("Connection error.", true); }
-    finally { setRefreshing(false); }
+  function pollProgress(n = 0) {
+    if (n > 60) { loadStatus(); return; }  // give up after 5 min
+    setTimeout(async () => {
+      try {
+        const r = await fetch(`${API}/ingest/url-progress/${user.id}`, { headers: authHeaders() });
+        const d = await r.json();
+        if (d.success) {
+          const p = d.progress;
+          setUrlProgress(p);
+          if (p.status === "done") {
+            notify("✅ Bot trained successfully! Your knowledge base is ready.");
+            loadStatus();
+            setTimeout(() => setUrlProgress(null), 3000);
+            return;
+          } else if (p.status === "failed") {
+            notify("❌ Training failed. Try uploading a file instead.", true);
+            setUrlProgress(null);
+            return;
+          }
+        }
+      } catch { }
+      pollProgress(n + 1);
+    }, 5000);
   }
 
   async function handleDelete() {
@@ -119,7 +137,7 @@ export default function TrainBot() {
   // ── Manual form ──
   async function handleManualSave() {
     if (!form.businessName.trim()) return notify("Please enter your business name.", true);
-    if (!form.description.trim())  return notify("Please describe your business.", true);
+    if (!form.description.trim()) return notify("Please describe your business.", true);
     setSaving(true);
     try {
       const text = buildText(form);
@@ -129,7 +147,7 @@ export default function TrainBot() {
       });
       const d = await r.json();
       d.success ? (notify("✅ Saved! Bot is now trained on your info."), setTimeout(loadStatus, 2000))
-                : notify(d.message || "Failed to save.", true);
+        : notify(d.message || "Failed to save.", true);
     } catch { notify("Connection error.", true); }
     finally { setSaving(false); }
   }
@@ -138,7 +156,7 @@ export default function TrainBot() {
     const L = [];
     if (f.businessName) L.push(`Business Name: ${f.businessName}`);
     if (f.businessType) L.push(`Business Type: ${f.businessType}`);
-    if (f.description)  L.push(`About: ${f.description}`);
+    if (f.description) L.push(`About: ${f.description}`);
     const prods = f.products.filter(p => p.name);
     if (prods.length) {
       L.push("\nProducts:");
@@ -155,20 +173,20 @@ export default function TrainBot() {
     if (f.deliveryInfo) L.push(`Delivery: ${f.deliveryInfo}`);
     if (f.workingHours) L.push(`Working Hours: ${f.workingHours}`);
     L.push("\nContact:");
-    if (f.phone)    L.push(`Phone: ${f.phone}`);
+    if (f.phone) L.push(`Phone: ${f.phone}`);
     if (f.whatsapp) L.push(`WhatsApp: ${f.whatsapp}`);
-    if (f.email)    L.push(`Email: ${f.email}`);
-    if (f.address)  L.push(`Address: ${f.address}`);
+    if (f.email) L.push(`Email: ${f.email}`);
+    if (f.address) L.push(`Address: ${f.address}`);
     if (f.extraInfo) L.push(`\nExtra Info: ${f.extraInfo}`);
     return L.join("\n");
   }
 
-  const addProd   = () => setForm(f => ({ ...f, products: [...f.products, { name: "", price: "", available: "true" }] }));
-  const delProd   = i => setForm(f => ({ ...f, products: f.products.filter((_, j) => j !== i) }));
-  const setProd   = (i, k, v) => setForm(f => { const p = [...f.products]; p[i] = { ...p[i], [k]: v }; return { ...f, products: p }; });
-  const addSvc    = () => setForm(f => ({ ...f, services: [...f.services, ""] }));
-  const delSvc    = i => setForm(f => ({ ...f, services: f.services.filter((_, j) => j !== i) }));
-  const setSvc    = (i, v) => setForm(f => { const s = [...f.services]; s[i] = v; return { ...f, services: s }; });
+  const addProd = () => setForm(f => ({ ...f, products: [...f.products, { name: "", price: "", available: "true" }] }));
+  const delProd = i => setForm(f => ({ ...f, products: f.products.filter((_, j) => j !== i) }));
+  const setProd = (i, k, v) => setForm(f => { const p = [...f.products]; p[i] = { ...p[i], [k]: v }; return { ...f, products: p }; });
+  const addSvc = () => setForm(f => ({ ...f, services: [...f.services, ""] }));
+  const delSvc = i => setForm(f => ({ ...f, services: f.services.filter((_, j) => j !== i) }));
+  const setSvc = (i, v) => setForm(f => { const s = [...f.services]; s[i] = v; return { ...f, services: s }; });
 
   // ── File upload ──
   async function handleUpload() {
@@ -210,7 +228,7 @@ export default function TrainBot() {
 
   function fileEmoji(name = "") {
     const e = name.split(".").pop().toLowerCase();
-    return e === "pdf" ? "📕" : e === "csv" ? "📊" : ["xlsx","xls"].includes(e) ? "📗" : ["doc","docx"].includes(e) ? "📘" : "📄";
+    return e === "pdf" ? "📕" : e === "csv" ? "📊" : ["xlsx", "xls"].includes(e) ? "📗" : ["doc", "docx"].includes(e) ? "📘" : "📄";
   }
 
   const hasData = status?.total_chunks > 0;
@@ -251,11 +269,10 @@ export default function TrainBot() {
       <div className="grid grid-cols-3 gap-3 mb-6">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`p-4 rounded-2xl border text-left transition-all ${
-              tab === t.id
+            className={`p-4 rounded-2xl border text-left transition-all ${tab === t.id
                 ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 shadow-sm"
                 : "border-slate-200 dark:border-white/5 bg-white dark:bg-[#16161e] hover:border-indigo-300 dark:hover:border-indigo-500/30"
-            }`}>
+              }`}>
             <t.Icon size={17} className={tab === t.id ? "text-indigo-600 dark:text-indigo-400 mb-2" : "text-slate-400 mb-2"} />
             <div className={`text-sm font-bold ${tab === t.id ? "text-indigo-700 dark:text-indigo-300" : "text-slate-800 dark:text-slate-200"}`}>
               {t.label}
@@ -270,39 +287,63 @@ export default function TrainBot() {
         <div className="bg-white dark:bg-[#16161e] border border-slate-200 dark:border-white/5 rounded-2xl p-6 mb-6 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <Globe size={16} className="text-indigo-500" />
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Auto-Crawl Website</h2>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Train from Website URL</h2>
           </div>
           <p className="text-xs text-slate-500 mb-5">
-            We scan your website and extract all products, services, FAQs and contact info automatically.
+            Paste your website URL — we fetch every page via <span className="font-bold text-indigo-600 dark:text-indigo-400">Jina.ai Reader</span> (no scraping, no IP blocks).
             Plan: <span className="text-indigo-600 dark:text-indigo-400 font-bold">{user?.plan || "starter"}</span> — up to {maxPages()} pages.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 mb-3">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === "Enter" && handleCrawl()}
-              placeholder="https://yourstore.com" className={IN + " flex-1"} />
+              placeholder="https://yourwebsite.com" className={IN + " flex-1"}
+              disabled={crawling} />
             <button onClick={handleCrawl} disabled={crawling}
               className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
               {crawling ? <RefreshCw size={14} className="animate-spin" /> : <Database size={14} />}
-              {crawling ? "Crawling..." : "Train Bot"}
+              {crawling ? "Starting..." : "Train Bot"}
             </button>
           </div>
 
-          <p className="text-[11px] text-slate-400">
-            ⏱ Crawling runs in background (~2 min). Bot auto re-crawls your site every 24 hours.
-          </p>
+          {/* Live progress bar */}
+          {urlProgress && urlProgress.status === "running" && (
+            <div className="mb-4 p-4 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20">
+              <div className="flex items-center justify-between text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-2">
+                <span className="flex items-center gap-2">
+                  <RefreshCw size={12} className="animate-spin" />
+                  Fetching pages via Jina.ai...
+                </span>
+                <span>{urlProgress.pages_done} / {urlProgress.total || "?"} pages</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-indigo-100 dark:bg-indigo-500/20 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-indigo-500 transition-all duration-500"
+                  style={{ width: urlProgress.total > 0 ? `${Math.round((urlProgress.pages_done / urlProgress.total) * 100)}%` : "15%" }}
+                />
+              </div>
+              <p className="text-[11px] text-indigo-600 dark:text-indigo-400 mt-2">
+                ⏱ This takes 1–2 minutes. You can leave this page — training continues in the background.
+              </p>
+            </div>
+          )}
 
-          {/* Best for */}
-          <div className="mt-5 pt-5 border-t border-slate-100 dark:border-white/5">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Works best for</p>
+          {/* Compatibility badges */}
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Works with all website types</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {["WordPress", "Shopify", "Static HTML", "Wix / Webflow"].map(p => (
-                <div key={p} className="px-3 py-2 rounded-lg bg-slate-50 dark:bg-[#1e1e2e] border border-slate-100 dark:border-white/5 text-xs font-medium text-slate-600 dark:text-slate-400 text-center">
-                  {p}
+              {[
+                { label: "WordPress", emoji: "🟢" },
+                { label: "React / Next.js", emoji: "🟢" },
+                { label: "Shopify / Wix", emoji: "🟢" },
+                { label: "Custom / MERN", emoji: "🟢" },
+              ].map(p => (
+                <div key={p.label} className="px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-xs font-medium text-emerald-700 dark:text-emerald-400 text-center flex items-center justify-center gap-1.5">
+                  <span>{p.emoji}</span> {p.label}
                 </div>
               ))}
             </div>
-            <div className="mt-3 px-3 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300">
-              ⚠️ React / Next.js sites require Selenium to be installed. If crawling returns 0 chunks, use the <strong>Upload File</strong> or <strong>Manual Form</strong> option instead.
+            <div className="mt-3 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 text-[11px] text-slate-500 dark:text-slate-400">
+              🔒 Pages behind login or checkout are skipped (they require authentication).
             </div>
           </div>
         </div>
@@ -413,11 +454,11 @@ export default function TrainBot() {
           <div>
             <label className={LB}>Contact Information</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input value={form.phone}    onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}    placeholder="📞 Phone: 0300-1234567"    className={IN} />
-              <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="💬 WhatsApp: 0300-1234567"  className={IN} />
-              <input value={form.email}    onChange={e => setForm(f => ({ ...f, email: e.target.value }))}    placeholder="✉️ Email: info@store.com"   className={IN} />
+              <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="📞 Phone: 0300-1234567" className={IN} />
+              <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="💬 WhatsApp: 0300-1234567" className={IN} />
+              <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="✉️ Email: info@store.com" className={IN} />
               <input value={form.workingHours} onChange={e => setForm(f => ({ ...f, workingHours: e.target.value }))} placeholder="🕐 Hours: Mon-Sat 10am-8pm" className={IN} />
-              <input value={form.address}  onChange={e => setForm(f => ({ ...f, address: e.target.value }))}  placeholder="📍 Address: Shop 5, Main Market, Karachi" className={IN + " sm:col-span-2"} />
+              <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="📍 Address: Shop 5, Main Market, Karachi" className={IN + " sm:col-span-2"} />
             </div>
           </div>
 
@@ -450,10 +491,9 @@ export default function TrainBot() {
           </p>
 
           {/* Drop zone */}
-          <label className={`flex flex-col items-center justify-center w-full h-44 rounded-2xl border-2 border-dashed cursor-pointer transition-all mb-5 ${
-            file ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-500/10"
-                 : "border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#1e1e2e] hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5"
-          }`}>
+          <label className={`flex flex-col items-center justify-center w-full h-44 rounded-2xl border-2 border-dashed cursor-pointer transition-all mb-5 ${file ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-500/10"
+              : "border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#1e1e2e] hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5"
+            }`}>
             <input ref={fileRef} type="file" accept=".csv,.pdf,.txt,.xlsx,.xls,.doc,.docx,.json"
               onChange={e => setFile(e.target.files[0])} className="hidden" />
             {file ? (
@@ -478,11 +518,11 @@ export default function TrainBot() {
           {/* Format cards */}
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6">
             {[
-              { ext: "CSV",  emoji: "📊", tip: "Product lists" },
+              { ext: "CSV", emoji: "📊", tip: "Product lists" },
               { ext: "XLSX", emoji: "📗", tip: "Excel sheets" },
-              { ext: "PDF",  emoji: "📕", tip: "Brochures" },
+              { ext: "PDF", emoji: "📕", tip: "Brochures" },
               { ext: "DOCX", emoji: "📘", tip: "Word docs" },
-              { ext: "TXT",  emoji: "📄", tip: "Plain text" },
+              { ext: "TXT", emoji: "📄", tip: "Plain text" },
             ].map(f => (
               <div key={f.ext} className="p-3 rounded-xl bg-slate-50 dark:bg-[#1e1e2e] border border-slate-100 dark:border-white/5 text-center">
                 <div className="text-xl mb-1">{f.emoji}</div>
@@ -546,8 +586,8 @@ export default function TrainBot() {
 
           <div className="grid grid-cols-3 gap-3 mb-4">
             {[
-              { label: "Pages",   val: status.total_pages,  c: "text-indigo-600 dark:text-indigo-400" },
-              { label: "Chunks",  val: status.total_chunks, c: "text-emerald-600 dark:text-emerald-400" },
+              { label: "Pages", val: status.total_pages, c: "text-indigo-600 dark:text-indigo-400" },
+              { label: "Chunks", val: status.total_chunks, c: "text-emerald-600 dark:text-emerald-400" },
               { label: "Updated", val: timeAgo(status.last_crawled), c: "text-amber-600 dark:text-amber-400" },
             ].map((s, i) => (
               <div key={i} className="bg-slate-50 dark:bg-[#0f0f13] p-4 rounded-xl text-center border border-slate-100 dark:border-white/5">

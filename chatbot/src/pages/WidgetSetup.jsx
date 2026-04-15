@@ -124,7 +124,7 @@ export default function WidgetSetup() {
       .finally(() => setLoading(false));
   }, []);
 
-  const backendUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
+  const backendUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8001`;
   const widgetSrc  = `${backendUrl}/widget.js`;
   const snippet    = `<script\n  src="${widgetSrc}"\n  data-api-key="${apiKey || "YOUR_API_KEY"}"\n></script>`;
 

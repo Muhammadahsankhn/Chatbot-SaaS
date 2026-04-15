@@ -62,7 +62,7 @@ export default function ApiKey() {
     }
   };
 
-  const backendUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
+  const backendUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8001`;
   const snippet = `<script\n  src="${backendUrl}/digichat/widget.js"\n  data-api-key="${visible ? apiKey : masked}"\n></script>`;
 
   const Card = ({ children, className = "" }) => (

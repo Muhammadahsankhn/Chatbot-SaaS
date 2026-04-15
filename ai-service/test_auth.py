@@ -1,7 +1,7 @@
 import requests
 
 print("Testing REGISTER")
-res1 = requests.post("http://localhost:8000/users/register", json={
+res1 = requests.post("http://localhost:8001/users/register", json={
     "fullname": "Test User",
     "email": "test@test.com",
     "password": "password123"
@@ -9,7 +9,7 @@ res1 = requests.post("http://localhost:8000/users/register", json={
 print(res1.status_code, res1.text)
 
 print("\nTesting LOGIN")
-res2 = requests.post("http://localhost:8000/users/login", json={
+res2 = requests.post("http://localhost:8001/users/login", json={
     "email": "test@test.com",
     "password": "password123"
 })

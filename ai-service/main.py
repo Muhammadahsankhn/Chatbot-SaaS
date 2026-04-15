@@ -47,6 +47,7 @@ if NODE_ENV != "production":
         "http://localhost:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
+        "null"
     ]
 
 app.add_middleware(
@@ -99,6 +100,22 @@ if os.path.exists(DIST_PATH):
     async def serve_react_root():
         return FileResponse(os.path.join(DIST_PATH, "index.html"))
 
+# ── Debug check ──
+@app.get("/debug-db")
+async def debug_db():
+    from database import get_db
+    db = get_db()
+    users = await db.users.find().to_list(100)
+    res = []
+    for u in users:
+        res.append({
+            "email": u.get("email"),
+            "apiKey": u.get("apiKey"),
+            "generatedApiKey": u.get("generatedApiKey"),
+            "widgetConfig": u.get("widgetConfig")
+        })
+    return res
+
 # ── Health check ──
 @app.get("/health")
 async def health():
@@ -115,7 +132,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host    = "0.0.0.0",
-        port    = int(os.getenv("PORT", 8000)),
+        port    = int(os.getenv("PORT", 8001)),
         reload  = NODE_ENV != "production",
         workers = 1 if NODE_ENV != "production" else 4,
     )

@@ -4,7 +4,7 @@ import axios from "axios";
 
 // Single source of truth for the backend URL
 
-const BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
+const BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8001`;
 
 
 

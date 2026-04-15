@@ -67,7 +67,7 @@ export default function ChatLogs() {
     setMsgLoading(true);
     setMessages([]);
     try {
-      const res = await api.get(`/api/v1/chat/conversations/:${sessionId}`);
+      const res = await api.get(`/users/conversations/${sessionId}`);
       if (res.data?.success) {
         setMessages(res.data.messages || []);
       }

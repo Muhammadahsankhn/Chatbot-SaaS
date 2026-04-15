@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { login, register } from "../api/authService";
 import { useAuth } from "../context/AuthContext";
+import ThemeToggle from "../components/ThemeToggle";
+import { useTheme } from "../context/ThemeContext";
 
 export default function Login() {
+  const { isDark } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const { handleLogin } = useAuth();
 
   const [isRegister, setIsRegister] = useState(false);
@@ -16,6 +20,19 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const err = params.get("error");
+    if (err) {
+      if (err === "not_registered") setError("User is not registered yet. Please register first.");
+      else if (err === "sync_error") setError("Sync error occurred.");
+      else setError(err);
+      
+      // Remove error from URL without refreshing
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location.search]);
+
   const handle = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError("");
@@ -24,8 +41,9 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    const backendUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
-    window.location.href = `${backendUrl}/users/auth/google`;
+    const backendUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8001`;
+    const intent = isRegister ? "register" : "login";
+    window.location.href = `${backendUrl}/users/auth/google?intent=${intent}`;
   };
 
   const submit = async (e) => {
@@ -103,7 +121,7 @@ export default function Login() {
         .login-root {
           display: flex;
           min-height: 100vh;
-          background: #080810;
+          background: ${isDark ? "#080810" : "#f1f5f9"};
           font-family: 'DM Sans', sans-serif;
         }
 
@@ -117,7 +135,7 @@ export default function Login() {
           justify-content: center;
           overflow: hidden;
           border-right: 1px solid rgba(99,102,241,0.1);
-          background: linear-gradient(135deg,#0d0d1a 0%,#0f0b1e 50%,#0a0f1e 100%);
+          background: ${isDark ? "linear-gradient(135deg,#0d0d1a 0%,#0f0b1e 50%,#0a0f1e 100%)" : "linear-gradient(135deg,#e2e8f0 0%,#f8fafc 50%,#e2e8f0 100%)"};
         }
 
         /* ── Right panel ── */
@@ -127,7 +145,7 @@ export default function Login() {
           align-items: center;
           justify-content: center;
           padding: 3rem 4rem;
-          background: #0c0c14;
+          background: ${isDark ? "#0c0c14" : "#ffffff"};
           overflow-y: auto;
         }
 
@@ -182,7 +200,7 @@ export default function Login() {
       {/* ── LEFT: Robot Panel ── */}
       <div className="login-left">
         <div className="grid-bg" style={{ position: "absolute", inset: 0 }} />
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 50%, transparent 25%, #0d0d1a 75%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 50%, transparent 25%, ${isDark ? "#0d0d1a" : "#f8fafc"} 75%)` }} />
 
         {particles.map((p, i) => (
           <div key={i} className="particle" style={{ position: "absolute", left: p.left, top: p.top, width: p.size, height: p.size, borderRadius: "50%", background: "linear-gradient(135deg,#818cf8,#a5b4fc)", boxShadow: "0 0 6px rgba(129,140,248,0.7)", animationDelay: p.delay, animationDuration: p.dur }} />
@@ -276,17 +294,20 @@ export default function Login() {
         </div>
 
         <div className="robot-shadow" style={{ width: 120, height: 18, borderRadius: "50%", marginTop: 12, zIndex: 10, background: "rgba(99,102,241,0.2)", filter: "blur(12px)" }} />
-        <div className="font-dm" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 24, zIndex: 10, color: "rgba(129,140,248,0.7)", fontSize: 12, fontWeight: 500, letterSpacing: "0.08em" }}>
+        <div className="font-dm" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 24, zIndex: 10, color: isDark ? "rgba(129,140,248,0.7)" : "#6366f1", fontSize: 12, fontWeight: 500, letterSpacing: "0.08em" }}>
           <div className="status-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "#34d399", boxShadow: "0 0 8px rgba(52,211,153,0.8)" }} />
           AI Assistant Online
         </div>
-        <div className="login-brand-bottom font-syne" style={{ position: "absolute", bottom: 32, fontSize: 24, fontWeight: 700, color: "rgba(129,140,248,0.4)", letterSpacing: "-0.02em", zIndex: 10 }}>Digi Chat</div>
+        <div className="login-brand-bottom font-syne" style={{ position: "absolute", bottom: 32, fontSize: 24, fontWeight: 700, color: isDark ? "rgba(129,140,248,0.4)" : "rgba(99,102,241,0.3)", letterSpacing: "-0.02em", zIndex: 10 }}>Digi Chat</div>
       </div>
 
       {/* ── RIGHT: Form Panel ── */}
       <div className="login-right">
         <div className="form-card" style={{ width: "100%", maxWidth: 360 }}>
-          <div className="font-syne" style={{ fontSize: 20, fontWeight: 800, color: "#818cf8", marginBottom: 32, letterSpacing: "-0.02em" }}>Digi Chat</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+            <div className="font-syne" style={{ fontSize: 20, fontWeight: 800, color: "#818cf8", letterSpacing: "-0.02em" }}>Digi Chat</div>
+            <ThemeToggle />
+          </div>
 
           {/* Tab switcher */}
           <div style={{ display: "flex", borderRadius: 12, padding: 4, marginBottom: 28, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -304,10 +325,10 @@ export default function Login() {
             ))}
           </div>
 
-          <h2 className="font-syne" style={{ fontSize: 24, fontWeight: 700, color: "#fff", marginBottom: 6, letterSpacing: "-0.02em" }}>
+          <h2 className="font-syne" style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#1e293b", marginBottom: 6, letterSpacing: "-0.02em" }}>
             {isRegister ? "Create account" : "Welcome back"}
           </h2>
-          <p className="font-dm" style={{ fontSize: 14, color: "#94a3b8", marginBottom: 28, lineHeight: 1.6 }}>
+          <p className="font-dm" style={{ fontSize: 14, color: isDark ? "#94a3b8" : "#64748b", marginBottom: 28, lineHeight: 1.6 }}>
             {isRegister ? "Deploy your chatbot in minutes." : "Sign in to manage your chatbots."}
           </p>
 

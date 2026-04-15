@@ -138,7 +138,14 @@ async def get_stats(user: dict = Depends(get_current_user)):
     uid = user["_id"]
 
     total_conversations = await db.conversations.count_documents({"userId": uid})
-    total_messages      = user.get("messageCount", 0)
+
+    # Sum messageCount from all conversations (more accurate than user.messageCount)
+    msg_pipeline = [
+        {"$match": {"userId": uid}},
+        {"$group": {"_id": None, "total": {"$sum": "$messageCount"}}}
+    ]
+    msg_result     = await db.conversations.aggregate(msg_pipeline).to_list(1)
+    total_messages = msg_result[0]["total"] if msg_result else user.get("messageCount", 0)
 
     since        = datetime.utcnow() - timedelta(hours=24)
     active_today = await db.conversations.count_documents({
@@ -146,7 +153,7 @@ async def get_stats(user: dict = Depends(get_current_user)):
         "createdAt": {"$gte": since}
     })
 
-    # Weekly activity (last 7 days)
+    # Weekly activity — count conversations per actual date for the last 7 days
     today_midnight = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     six_days_ago   = today_midnight - timedelta(days=6)
 
@@ -154,14 +161,23 @@ async def get_stats(user: dict = Depends(get_current_user)):
         {"$match": {"userId": uid, "createdAt": {"$gte": six_days_ago}}},
         {"$group": {
             "_id":   {"$dateToString": {"format": "%Y-%m-%d", "date": "$createdAt"}},
-            "count": {"$sum": "$messageCount"}
+            "count": {"$sum": 1}
         }}
     ]
     weekly_raw  = await db.conversations.aggregate(pipeline).to_list(7)
-    weekly_data = [0] * 7
+
+    # Build a map of date -> count for the last 7 days
+    date_map = {}
     for d in weekly_raw:
-        dt = datetime.strptime(d["_id"], "%Y-%m-%d")
-        weekly_data[dt.weekday()] += d["count"]
+        date_map[d["_id"]] = d["count"]
+
+    # weekly_data[0..6] = Mon..Sun, filling in zeroes for days with no activity
+    weekly_data = [0] * 7
+    for i in range(7):
+        day    = six_days_ago + timedelta(days=i)
+        ds     = day.strftime("%Y-%m-%d")
+        wday   = day.weekday()          # 0=Mon … 6=Sun
+        weekly_data[wday] = date_map.get(ds, 0)
 
     # ── Crawl status from knowledge base ──
     crawl_status = {}
@@ -200,14 +216,20 @@ async def get_stats(user: dict = Depends(get_current_user)):
 
 # ── Get all conversations ──
 @router.get("/conversations")
-async def get_conversations(user: dict = Depends(get_current_user)):
+async def get_conversations(
+    user:  dict = Depends(get_current_user),
+    limit: int  = 50
+):
     db  = get_db()
     uid = user["_id"]
+
+    # Cap at 500 to avoid overloading the DB
+    limit = min(max(limit, 1), 500)
 
     cursor = db.conversations.find(
         {"userId": uid},
         {"messages": 0}
-    ).sort("createdAt", -1).limit(50)
+    ).sort("createdAt", -1).limit(limit)
 
     convos = []
     async for c in cursor:
@@ -249,18 +271,25 @@ async def get_analytics(user: dict = Depends(get_current_user)):
     db  = get_db()
     uid = user["_id"]
 
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-    pipeline = [
-        {"$match": {"userId": uid, "createdAt": {"$gte": thirty_days_ago}}},
-        {"$group": {
-            "_id":      {"$dateToString": {"format": "%Y-%m-%d", "date": "$createdAt"}},
-            "sessions": {"$sum": 1},
-            "messages": {"$sum": "$messageCount"}
-        }},
-        {"$sort": {"_id": 1}}
-    ]
-    daily = await db.conversations.aggregate(pipeline).to_list(30)
+    # Total conversations
+    total_conversations = await db.conversations.count_documents({"userId": uid})
 
+    # Total messages — summed directly from conversations collection
+    msg_pipeline = [
+        {"$match": {"userId": uid}},
+        {"$group": {"_id": None, "total": {"$sum": "$messageCount"}}}
+    ]
+    msg_result     = await db.conversations.aggregate(msg_pipeline).to_list(1)
+    total_messages = msg_result[0]["total"] if msg_result else 0
+
+    # Active conversations today (last 24 h)
+    since        = datetime.utcnow() - timedelta(hours=24)
+    active_today = await db.conversations.count_documents({
+        "userId":    uid,
+        "createdAt": {"$gte": since}
+    })
+
+    # Top pages (all time, top 5)
     page_pipeline = [
         {"$match": {"userId": uid}},
         {"$group": {"_id": "$page", "count": {"$sum": 1}}},
@@ -269,18 +298,9 @@ async def get_analytics(user: dict = Depends(get_current_user)):
     ]
     top_pages = await db.conversations.aggregate(page_pipeline).to_list(5)
 
-    total_conversations = await db.conversations.count_documents({"userId": uid})
-    total_messages      = user.get("messageCount", 0)
-    since               = datetime.utcnow() - timedelta(hours=24)
-    active_today        = await db.conversations.count_documents({
-        "userId":    uid,
-        "createdAt": {"$gte": since}
-    })
-
     return {
         "success": True,
         "analytics": {
-            "daily":              daily,
             "topPages":           [{"page": p["_id"] or "Direct", "count": p["count"]} for p in top_pages],
             "totalConversations": total_conversations,
             "totalMessages":      total_messages,

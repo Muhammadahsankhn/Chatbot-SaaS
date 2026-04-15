@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { TrendingUp, Users, MessageCircle, Zap, Clock, PieChart } from "lucide-react";
-import { getAnalytics, getWeeklyActivity, getAllChats } from "../api/userService";
+import { useState, useEffect, useCallback } from "react";
+import { TrendingUp, Users, MessageCircle, Zap, Clock, PieChart, RefreshCw } from "lucide-react";
+import { getAnalytics, getWeeklyActivity } from "../api/userService";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -15,45 +15,49 @@ export default function Analytics() {
   const [weekMsgs, setWeekMsgs] = useState([0, 0, 0, 0, 0, 0, 0]); // conversations per day
   const [topPages, setTopPages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [analyticsRes, weekRes, chatsRes] = await Promise.all([
-          getAnalytics(),
-          getWeeklyActivity(),
-          getAllChats({ limit: 200 }),
-        ]);
+  const load = useCallback(async (isManual = false) => {
+    if (isManual) setRefreshing(true);
+    try {
+      const [analyticsRes, weekRes] = await Promise.all([
+        getAnalytics(),
+        getWeeklyActivity(),
+      ]);
 
-        if (analyticsRes.success) setAnalytics(analyticsRes.analytics);
-        if (weekRes.success) setWeekMsgs(weekRes.stats?.weeklyData || [0, 0, 0, 0, 0, 0, 0]);
-
-        // Build top pages from conversation data
-        if (chatsRes.success && chatsRes.conversations?.length) {
-          const pageMap = {};
-          chatsRes.conversations.forEach(c => {
-            let page = "/";
-            try { page = new URL(c.page).pathname || "/"; } catch { page = c.page || "/"; }
-            pageMap[page] = (pageMap[page] || 0) + 1;
-          });
-          const sorted = Object.entries(pageMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5);
-          const maxSessions = sorted[0]?.[1] || 1;
-          setTopPages(sorted.map(([page, sessions]) => ({
-            page,
-            sessions,
-            pct: Math.round((sessions / maxSessions) * 100),
-          })));
-        }
-      } catch (err) {
-        console.error("Analytics load error:", err);
-      } finally {
-        setLoading(false);
+      if (analyticsRes.success) {
+        setAnalytics(analyticsRes.analytics);
+        // Use topPages from analytics API (covers ALL conversations)
+        const pages = analyticsRes.analytics?.topPages || [];
+        const maxSessions = pages[0]?.count || 1;
+        setTopPages(pages.map(p => ({
+          page:     p.page,
+          sessions: p.count,
+          pct:      Math.round((p.count / maxSessions) * 100),
+        })));
       }
-    };
-    load();
+      if (weekRes.success) setWeekMsgs(weekRes.stats?.weeklyData || [0, 0, 0, 0, 0, 0, 0]);
+
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error("Analytics load error:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  // Initial load
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => load(), 30_000);
+    return () => clearInterval(interval);
+  }, [load]);
 
   const maxWeek = Math.max(...weekMsgs, 1);
 
@@ -113,10 +117,27 @@ export default function Analytics() {
 
   return (
     <div className="w-full max-w-7xl mx-auto transition-colors pb-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight"
-          style={{ fontFamily: "'Syne',sans-serif" }}>Analytics</h1>
-        <p className="text-slate-500 text-sm mt-1">Real-time performance metrics for your AI agent.</p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight"
+            style={{ fontFamily: "'Syne',sans-serif" }}>Analytics</h1>
+          <p className="text-slate-500 text-sm mt-1">Real-time performance metrics for your AI agent.</p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {lastUpdated && (
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            onClick={() => load(true)}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-all disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* ── KPI Grid ── */}

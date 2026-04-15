@@ -2,230 +2,902 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <title>ChatBase Demo</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DigiChat — System Design</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet" />
   <style>
-    * {
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
+    }
+
+    :root {
+      --indigo: #6366f1;
+      --indigo-d: #4338ca;
+      --violet: #8b5cf6;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --cyan: #06b6d4;
+      --bg: #080b14;
+      --surface: #0f1320;
+      --card: #141927;
+      --border: rgba(99, 102, 241, 0.18);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --mono: 'JetBrains Mono', monospace;
+      --display: 'Syne', sans-serif;
+      --body: 'DM Sans', sans-serif;
     }
 
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f8fafc;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--body);
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    /* Fake website navbar */
-    nav {
-      background: #1e1b4b;
-      padding: 16px 40px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
     }
 
-    nav .logo {
-      color: white;
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    nav .links {
-      display: flex;
-      gap: 24px;
-    }
-
-    nav .links a {
-      color: rgba(255, 255, 255, 0.7);
-      text-decoration: none;
-      font-size: 14px;
-    }
-
-    /* Hero section */
-    .hero {
-      padding: 80px 40px;
-      text-align: center;
-      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-      color: white;
-    }
-
-    .hero h1 {
-      font-size: 48px;
-      font-weight: 800;
-      margin-bottom: 16px;
-    }
-
-    .hero p {
-      font-size: 18px;
-      opacity: 0.8;
-      max-width: 500px;
-      margin: 0 auto 32px;
-    }
-
-    .hero button {
-      background: #6366f1;
-      color: white;
-      border: none;
-      padding: 14px 32px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    /* Features */
-    .features {
-      padding: 60px 40px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-      max-width: 1100px;
+    .wrap {
+      max-width: 1200px;
       margin: 0 auto;
+      padding: 48px 32px 80px;
     }
 
-    .feature-card {
-      background: white;
-      border-radius: 16px;
-      padding: 28px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    .header {
+      text-align: center;
+      margin-bottom: 64px;
+      animation: fadeUp 0.6s ease both;
     }
 
-    .feature-card .icon {
-      font-size: 32px;
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(99, 102, 241, 0.08);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--indigo);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .badge::before {
+      content: '●';
+      font-size: 8px;
+      color: var(--emerald);
+    }
+
+    h1 {
+      font-family: var(--display);
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.1;
       margin-bottom: 12px;
     }
 
-    .feature-card h3 {
-      font-size: 17px;
-      font-weight: 700;
-      color: #1e293b;
-      margin-bottom: 8px;
-    }
-
-    .feature-card p {
-      font-size: 14px;
-      color: #64748b;
+    .subtitle {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto;
       line-height: 1.6;
     }
 
-    /* FAQ section - great for testing RAG */
-    .faq {
-      background: white;
-      padding: 60px 40px;
-      max-width: 800px;
-      margin: 0 auto;
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--indigo);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    .faq h2 {
-      font-size: 28px;
-      font-weight: 800;
-      color: #1e1b4b;
-      margin-bottom: 32px;
-      text-align: center;
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
     }
 
-    .faq-item {
-      border-bottom: 1px solid #e2e8f0;
-      padding: 20px 0;
-    }
-
-    .faq-item h4 {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1e293b;
-      margin-bottom: 8px;
-    }
-
-    .faq-item p {
-      font-size: 14px;
-      color: #64748b;
-      line-height: 1.65;
-    }
-
-    footer {
-      background: #1e1b4b;
-      color: rgba(255, 255, 255, 0.6);
-      text-align: center;
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
       padding: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
+    }
+
+    .card-title {
+      font-family: var(--display);
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      font-family: var(--mono);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .flow-node {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 16px;
+      text-align: center;
+      position: relative;
+    }
+
+    .flow-node .icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .flow-node .name {
+      font-family: var(--display);
       font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .flow-node .port {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--indigo);
+      background: rgba(99, 102, 241, 0.1);
+      padding: 2px 8px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 0 8px;
+    }
+
+    .arrow-line {
+      width: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--indigo), var(--violet));
+      position: relative;
+    }
+
+    .arrow-line::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -3px;
+      border: 4px solid transparent;
+      border-left-color: var(--violet);
+      border-right: none;
+    }
+
+    .arrow-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s 0.25s ease both;
+    }
+
+    .pill-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .pill {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+
+    .pill-indigo {
+      color: #a5b4fc;
+      border-color: rgba(165, 180, 252, 0.25);
+      background: rgba(99, 102, 241, 0.08);
+    }
+
+    .pill-emerald {
+      color: #6ee7b7;
+      border-color: rgba(110, 231, 183, 0.25);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .pill-amber {
+      color: #fcd34d;
+      border-color: rgba(252, 211, 77, 0.25);
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .pill-cyan {
+      color: #67e8f9;
+      border-color: rgba(103, 232, 249, 0.25);
+      background: rgba(6, 182, 212, 0.08);
+    }
+
+    .pill-violet {
+      color: #c4b5fd;
+      border-color: rgba(196, 181, 253, 0.25);
+      background: rgba(139, 92, 246, 0.08);
+    }
+
+    .pill-rose {
+      color: #fda4af;
+      border-color: rgba(253, 164, 175, 0.25);
+      background: rgba(244, 63, 94, 0.08);
+    }
+
+    .dataflow {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    .flow-steps {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    .flow-col-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .step:last-child {
+      border-bottom: none;
+    }
+
+    .step-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--indigo);
+      background: rgba(99, 102, 241, 0.12);
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-weight: 700;
+    }
+
+    .step-text {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .step-text span {
+      color: var(--muted);
+      font-size: 11px;
+      display: block;
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+
+    .endpoints {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s 0.35s ease both;
+    }
+
+    .endpoint-group {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .endpoint-group-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+    }
+
+    .ep {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .ep:last-child {
+      border-bottom: none;
+    }
+
+    .method {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      min-width: 38px;
+      text-align: center;
+    }
+
+    .get {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+    }
+
+    .post {
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+    }
+
+    .put {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fcd34d;
+    }
+
+    .del {
+      background: rgba(244, 63, 94, 0.15);
+      color: #fda4af;
+    }
+
+    .ep-path {
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .storage-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+
+    .storage-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .storage-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .storage-name {
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .storage-type {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--indigo);
+      margin-bottom: 12px;
+    }
+
+    .storage-items {
+      text-align: left;
+    }
+
+    .storage-item {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 3px 0;
+      display: flex;
+      gap: 6px;
+    }
+
+    .storage-item::before {
+      content: '->';
+      color: var(--indigo);
+    }
+
+    .security {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s 0.45s ease both;
+    }
+
+    .sec-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .sec-item {
+      background: rgba(99, 102, 241, 0.06);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .sec-icon {
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    .sec-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .sec-desc {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .footer {
+      text-align: center;
+      border-top: 1px solid var(--border);
+      padding-top: 32px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      animation: fadeUp 0.6s 0.5s ease both;
+    }
+
+    .footer strong {
+      color: var(--indigo);
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .node-indigo {
+      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3), 0 8px 32px rgba(99, 102, 241, 0.1);
+    }
+
+    .node-emerald {
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3), 0 8px 32px rgba(16, 185, 129, 0.1);
+    }
+
+    .node-violet {
+      box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.3), 0 8px 32px rgba(139, 92, 246, 0.1);
+    }
+
+    .node-amber {
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3), 0 8px 32px rgba(245, 158, 11, 0.1);
     }
   </style>
 </head>
 
 <body>
+  <div class="wrap">
 
-  <!-- Fake company website -->
-  <nav>
-    <div class="logo">⚡ TechStore</div>
-    <div class="links">
-      <a href="#">Products</a>
-      <a href="#">Pricing</a>
-      <a href="#">About</a>
-      <a href="#">Contact</a>
+    <div class="header">
+      <div class="badge">System Architecture v1.0</div>
+      <h1>DigiChat System Design</h1>
+      <p class="subtitle">Full-stack AI chatbot platform &mdash; FastAPI &middot; React &middot; Groq &middot; MongoDB
+        &middot; NumPy Vectors</p>
     </div>
-  </nav>
 
-  <div class="hero">
-    <h1>The Future of Tech</h1>
-    <p>Premium gadgets and electronics delivered to your door in 24 hours.</p>
-    <button>Shop Now</button>
+    <div class="section-label">High-Level Architecture</div>
+    <div class="flow">
+      <div class="flow-node node-indigo">
+        <span class="icon">🌐</span>
+        <div class="name">Customer Website</div>
+        <span class="port">widget.js</span>
+      </div>
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-label">embed script</div>
+      </div>
+      <div class="flow-node node-violet">
+        <span class="icon">⚛️</span>
+        <div class="name">React Dashboard</div>
+        <span class="port">:5173 / /digichat</span>
+      </div>
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-label">REST API</div>
+      </div>
+      <div class="flow-node node-emerald">
+        <span class="icon">⚡</span>
+        <div class="name">FastAPI Backend</div>
+        <span class="port">:8001</span>
+      </div>
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-label">LLM call</div>
+      </div>
+      <div class="flow-node node-amber">
+        <span class="icon">🤖</span>
+        <div class="name">Groq AI</div>
+        <span class="port">Llama 3.3 70B</span>
+      </div>
+    </div>
+
+    <div class="section-label">System Layers</div>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">⚛️ Frontend</div>
+        <div class="card-sub">React 18 &middot; Vite &middot; Tailwind CSS</div>
+        <div class="pill-grid">
+          <span class="pill pill-indigo">Login.jsx</span>
+          <span class="pill pill-indigo">Dashboard.jsx</span>
+          <span class="pill pill-indigo">TrainBot.jsx</span>
+          <span class="pill pill-indigo">WidgetSetup.jsx</span>
+          <span class="pill pill-indigo">ChatLogs.jsx</span>
+          <span class="pill pill-indigo">Analytics.jsx</span>
+          <span class="pill pill-indigo">Customization.jsx</span>
+          <span class="pill pill-indigo">AdminPanel.jsx</span>
+          <span class="pill pill-indigo">Plans.jsx</span>
+          <span class="pill pill-indigo">Settings.jsx</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">⚡ Backend Routers</div>
+        <div class="card-sub">FastAPI &middot; Python 3.14 &middot; Motor</div>
+        <div class="pill-grid">
+          <span class="pill pill-emerald">auth_router.py</span>
+          <span class="pill pill-emerald">user_router.py</span>
+          <span class="pill pill-emerald">chat_router.py</span>
+          <span class="pill pill-emerald">admin_router.py</span>
+          <span class="pill pill-emerald">ingest.py</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🧠 AI Services</div>
+        <div class="card-sub">Groq &middot; Sentence Transformers &middot; NumPy</div>
+        <div class="pill-grid">
+          <span class="pill pill-violet">gemini.py (Groq)</span>
+          <span class="pill pill-violet">embeddings.py</span>
+          <span class="pill pill-violet">knowledge_base.py</span>
+          <span class="pill pill-violet">file_parser.py</span>
+          <span class="pill pill-cyan">validate_key.py</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Data Flows</div>
+    <div class="dataflow">
+      <div class="flow-steps">
+        <div>
+          <div class="flow-col-title">
+            <span class="dot" style="background:#6366f1"></span>
+            <span style="color:#a5b4fc">Training Flow &mdash; How Bot Learns</span>
+          </div>
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">Customer fills Manual Form or uploads a file<span>POST /ingest/manual or POST
+                /ingest/upload</span></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">file_parser.py extracts plain text<span>PDF pdfplumber &middot; DOCX python-docx
+                &middot; XLSX openpyxl &middot; CSV built-in</span></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">Text split into 500-word overlapping chunks<span>chunk_size=500, overlap=50
+                words</span></div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text">embeddings.py converts each chunk to 384-dim vector<span>all-MiniLM-L6-v2 model
+                (local, no API needed)</span></div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-text">knowledge_base.py saves vectors + metadata to
+              disk<span>db/knowledge/{userId}_vectors.npy &middot; {userId}_metadata.json</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="flow-col-title">
+            <span class="dot" style="background:#10b981"></span>
+            <span style="color:#6ee7b7">Chat Flow &mdash; How Visitor Gets Answer</span>
+          </div>
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">Visitor types message in widget on customer site<span>POST /chat/message { apiKey,
+                message, sessionId, history }</span></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">validate_key.py verifies API key and fetches userId<span>Middleware checks MongoDB
+                for valid key</span></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">Question embedded to 384-dim vector<span>Same all-MiniLM-L6-v2 model used at training
+                time</span></div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text">Cosine similarity search returns top 4 matching chunks<span>Threshold: 0.25
+                similarity score minimum</span></div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-text">Groq Llama 3.3 70B generates reply using context<span>Conversation saved to MongoDB
+                &middot; Reply returned to widget</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">API Endpoints</div>
+    <div class="endpoints">
+      <div class="endpoint-group">
+        <div class="endpoint-group-title">🔐 Auth</div>
+        <div class="ep"><span class="method post">POST</span><span class="ep-path">/users/register</span></div>
+        <div class="ep"><span class="method post">POST</span><span class="ep-path">/users/login</span></div>
+        <div class="ep"><span class="method get">GET</span><span class="ep-path">/users/auth/google</span></div>
+        <div class="ep"><span class="method get">GET</span><span class="ep-path">/users/auth/google/callback</span>
+        </div>
+        <div class="ep"><span class="method post">POST</span><span class="ep-path">/users/logout</span></div>
+      </div>
+      <div class="endpoint-group">
+        <div class="endpoint-group-title">👤 User</div>
+        <div class="ep"><span class="method get">GET</span><span class="ep-path">/users/me</span></div>
+        <div class="ep"><span class="method put">PUT</span><span class="ep-path">/users/me</span></div>
+        <div class="ep"><span class="method get">GET</span><span class="ep-path">/users/api-key</span></div>
+        <div class="ep"><span class="method post">POST</span><span class="ep-path">/users/api-key/regenerate</span>
+        </div>
+        <div class="ep"><span class="method get">GET</span><span class="ep-path">/users/stats</span></div>
+        <div class="ep"><span class="method get">GET</span><span class="ep-path">/users/conversations</span></div>
+      </div>
+      <div class="endpoint-group">
+        <div class="endpoint-group-title">🧠 Ingest (Train Bot)</div>
+        <div class="ep"><span class="method post">POST</span><span class="ep-path">/ingest/manual</span></div>
+        <div class="ep"><span class="method post">POST</span><span class="ep-path">/ingest/upload</span></div>
+        <div class="ep"><span class="method get">GET</span><span class="ep-path">/ingest/status/{userId}</span></div>
+        <div class="ep"><span class="method del">DEL</span><span class="ep-path">/ingest/delete</span></div>
+      </div>
+      <div class="endpoint-group">
+        <div class="endpoint-group-title">💬 Chat &amp; Admin</div>
+        <div class="ep"><span class="method post">POST</span><span class="ep-path">/chat/message</span></div>
+        <div class="ep"><span class="method get">GET</span><span class="ep-path">/chat/config/{apiKey}</span></div>
+        <div class="ep"><span class="method get">GET</span><span class="ep-path">/widget.js</span></div>
+        <div class="ep"><span class="method get">GET</span><span class="ep-path">/admin/users</span></div>
+        <div class="ep"><span class="method put">PUT</span><span class="ep-path">/admin/users/{id}/plan</span></div>
+      </div>
+    </div>
+
+    <div class="section-label">Storage Layer</div>
+    <div class="storage-grid">
+      <div class="storage-card">
+        <div class="storage-icon">🍃</div>
+        <div class="storage-name">MongoDB</div>
+        <div class="storage-type">Document Database</div>
+        <div class="storage-items">
+          <div class="storage-item">users collection</div>
+          <div class="storage-item">conversations collection</div>
+          <div class="storage-item">messages collection</div>
+          <div class="storage-item">API keys per user</div>
+          <div class="storage-item">widget config per user</div>
+        </div>
+      </div>
+      <div class="storage-card">
+        <div class="storage-icon">💾</div>
+        <div class="storage-name">Disk Vectors</div>
+        <div class="storage-type">NumPy .npy Files</div>
+        <div class="storage-items">
+          <div class="storage-item">{userId}_vectors.npy</div>
+          <div class="storage-item">{userId}_metadata.json</div>
+          <div class="storage-item">{userId}_config.json</div>
+          <div class="storage-item">384-dim float32 vectors</div>
+          <div class="storage-item">Per-user isolation</div>
+        </div>
+      </div>
+      <div class="storage-card">
+        <div class="storage-icon">🤖</div>
+        <div class="storage-name">Groq Cloud</div>
+        <div class="storage-type">External AI API</div>
+        <div class="storage-items">
+          <div class="storage-item">Llama 3.3 70B model</div>
+          <div class="storage-item">14,400 req/day free</div>
+          <div class="storage-item">Context + history sent</div>
+          <div class="storage-item">Under 1s response time</div>
+          <div class="storage-item">OpenAI-compatible SDK</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Security Layer</div>
+    <div class="security">
+      <div class="sec-grid">
+        <div class="sec-item">
+          <div class="sec-icon">🔑</div>
+          <div class="sec-title">JWT Tokens</div>
+          <div class="sec-desc">All dashboard routes protected. Stored as cb_token in localStorage.</div>
+        </div>
+        <div class="sec-item">
+          <div class="sec-icon">🔐</div>
+          <div class="sec-title">API Key Auth</div>
+          <div class="sec-desc">Widget requests use API key. Validated per request via middleware.</div>
+        </div>
+        <div class="sec-item">
+          <div class="sec-icon">🌐</div>
+          <div class="sec-title">Google OAuth</div>
+          <div class="sec-desc">Social login via Google. Callback issues JWT on success.</div>
+        </div>
+        <div class="sec-item">
+          <div class="sec-icon">🛡️</div>
+          <div class="sec-title">CORS + HTTPS</div>
+          <div class="sec-desc">Allowed origins configured. SSL required for widget on live sites.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Full Tech Stack</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">📦 Dependencies</div>
+        <div class="card-sub">pip install</div>
+        <div class="pill-grid">
+          <span class="pill pill-emerald">fastapi</span>
+          <span class="pill pill-emerald">uvicorn</span>
+          <span class="pill pill-emerald">motor</span>
+          <span class="pill pill-emerald">pymongo</span>
+          <span class="pill pill-emerald">groq</span>
+          <span class="pill pill-violet">sentence-transformers</span>
+          <span class="pill pill-violet">numpy</span>
+          <span class="pill pill-amber">pdfplumber</span>
+          <span class="pill pill-amber">python-docx</span>
+          <span class="pill pill-amber">openpyxl</span>
+          <span class="pill pill-cyan">python-jose</span>
+          <span class="pill pill-cyan">passlib</span>
+          <span class="pill pill-cyan">httpx</span>
+          <span class="pill pill-rose">python-multipart</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🌍 Deployment</div>
+        <div class="card-sub">digicareproducts.com</div>
+        <div class="pill-grid">
+          <span class="pill pill-indigo">VPS (Ubuntu)</span>
+          <span class="pill pill-indigo">Nginx reverse proxy</span>
+          <span class="pill pill-indigo">PM2 process manager</span>
+          <span class="pill pill-emerald">FastAPI :8000</span>
+          <span class="pill pill-emerald">React /digichat</span>
+          <span class="pill pill-amber">SSL (HTTPS)</span>
+          <span class="pill pill-amber">MongoDB local</span>
+          <span class="pill pill-violet">Google OAuth live</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <strong>DigiChat</strong> &middot; Built by DigiCare Products &middot; System Design v1.0 &middot; Live at
+      digicareproducts.com/digichat
+    </div>
+
   </div>
+  <script src="http://localhost:8001/widget.js" data-api-key="d6bf4185-4fd1-4138-ac58-3cfd81f64aac"></script>
+</body>
 
-  <div class="features">
-    <div class="feature-card">
-      <div class="icon">🚀</div>
-      <h3>Fast Delivery</h3>
-      <p>Get your order delivered within 24 hours anywhere in the city. Free delivery on orders above $50.</p>
-    </div>
-    <div class="feature-card">
-      <div class="icon">🔄</div>
-      <h3>Easy Returns</h3>
-      <p>Not satisfied? Return any product within 30 days for a full refund. No questions asked.</p>
-    </div>
-    <div class="feature-card">
-      <div class="icon">🛡️</div>
-      <h3>2 Year Warranty</h3>
-      <p>Every product comes with a 2 year manufacturer warranty and our own quality guarantee.</p>
-    </div>
-  </div>
-
-  <div class="faq">
-    <h2>Frequently Asked Questions</h2>
-    <div class="faq-item">
-      <h4>What is your return policy?</h4>
-      <p>We offer a 30-day hassle-free return policy. Simply contact support@techstore.com and we will arrange a free
-        pickup.</p>
-    </div>
-    <div class="faq-item">
-      <h4>How long does delivery take?</h4>
-      <p>Standard delivery takes 1-2 business days. Express delivery is available for same-day delivery within city
-        limits.</p>
-    </div>
-    <div class="faq-item">
-      <h4>Do you offer international shipping?</h4>
-      <p>Yes! We ship to over 50 countries. International orders typically arrive within 7-14 business days.</p>
-    </div>
-    <div class="faq-item">
-      <h4>How can I track my order?</h4>
-      <p>Once your order ships, you will receive a tracking number via email. You can track it on our website or the
-        courier's site.</p>
-    </div>
-    <div class="faq-item">
-      <h4>What payment methods do you accept?</h4>
-      <p>We accept Visa, Mastercard, PayPal, and bank transfers. All payments are secured with 256-bit SSL encryption.
-      </p>
-    </div>
-  </div>
-
-  <footer>
-    &copy; 2025 TechStore. All rights reserved.
-  </footer>
-
-  <!-- ChatBase Widget — replace YOUR_API_KEY with your actual key -->
-<script
-  src="http://localhost:8000/widget.js"
-  data-api-key="d6bf4185-4fd1-4138-ac58-3cfd81f64aac"
-></script>
 </html>
